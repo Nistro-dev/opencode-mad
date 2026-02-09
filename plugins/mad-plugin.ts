@@ -15,6 +15,10 @@ import { execSync } from "child_process"
 // Current version of opencode-mad
 const CURRENT_VERSION = "0.3.0"
 
+// Update notification state (shown only once per session)
+let updateNotificationShown = false
+let pendingUpdateMessage: string | null = null
+
 export const MADPlugin: Plugin = async ({ project, client, $, directory, worktree }) => {
   
   /**
@@ -97,16 +101,26 @@ export const MADPlugin: Plugin = async ({ project, client, $, directory, worktre
     return { hasUpdate: false, current: CURRENT_VERSION, latest: CURRENT_VERSION }
   }
 
-  // Check for updates at plugin initialization
+  // Check for updates at plugin initialization and store message for first tool response
   try {
     const updateInfo = await checkForUpdates()
     if (updateInfo.hasUpdate) {
-      console.log(`\n🔄 opencode-mad update available: ${updateInfo.current} → ${updateInfo.latest}`)
-      console.log(`   Run: npx opencode-mad install -g\n`)
+      pendingUpdateMessage = `🔄 **Update available!** opencode-mad ${updateInfo.current} → ${updateInfo.latest}\n   Run: \`npx opencode-mad install -g\`\n\n`
       logEvent("info", "Update available", { current: updateInfo.current, latest: updateInfo.latest })
     }
   } catch (e) {
     // Silent fail - don't break plugin initialization
+  }
+
+  /**
+   * Helper to get update notification (returns message only once)
+   */
+  const getUpdateNotification = (): string => {
+    if (pendingUpdateMessage && !updateNotificationShown) {
+      updateNotificationShown = true
+      return pendingUpdateMessage
+    }
+    return ""
   }
 
   return {
@@ -131,12 +145,12 @@ Each worktree has its own branch and working directory.`,
             // Validate inputs
             if (!branch || branch.trim() === "") {
               logEvent("error", "mad_worktree_create failed: empty branch name")
-              return "❌ Error: Branch name cannot be empty"
+              return getUpdateNotification() + "❌ Error: Branch name cannot be empty"
             }
             
             if (!task || task.trim() === "") {
               logEvent("error", "mad_worktree_create failed: empty task description")
-              return "❌ Error: Task description cannot be empty"
+              return getUpdateNotification() + "❌ Error: Task description cannot be empty"
             }
             
             const gitRoot = getGitRoot()
@@ -148,7 +162,7 @@ Each worktree has its own branch and working directory.`,
             // Check if worktree already exists
             if (existsSync(worktreePath)) {
               logEvent("warn", "Worktree already exists", { branch, path: worktreePath })
-              return `⚠️  Worktree already exists at ${worktreePath}\nUse a different branch name or clean up with mad_cleanup.`
+              return getUpdateNotification() + `⚠️  Worktree already exists at ${worktreePath}\nUse a different branch name or clean up with mad_cleanup.`
             }
 
             logEvent("info", "Creating worktree", { branch, baseBranch })
@@ -177,7 +191,7 @@ worktrees/
               mkdirSync(worktreeDir, { recursive: true })
             } catch (e: any) {
               logEvent("error", "Failed to create worktree directory", { error: e.message })
-              return `❌ Error creating worktree directory: ${e.message}`
+              return getUpdateNotification() + `❌ Error creating worktree directory: ${e.message}`
             }
 
             // Check if branch exists
@@ -196,7 +210,7 @@ worktrees/
                 command: worktreeCmd,
                 error: worktreeResult.error 
               })
-              return `❌ Error creating git worktree: ${worktreeResult.error}`
+              return getUpdateNotification() + `❌ Error creating git worktree: ${worktreeResult.error}`
             }
 
             // Write task file using Node.js
@@ -215,7 +229,7 @@ ${task}
 
             logEvent("info", "Worktree created successfully", { branch, path: worktreePath })
 
-            return `✅ Worktree created successfully!
+            return getUpdateNotification() + `✅ Worktree created successfully!
 - Path: ${worktreePath}
 - Branch: ${branch}
 - Base: ${baseBranch}
@@ -224,7 +238,7 @@ ${task}
 The developer subagent can now work in this worktree using the Task tool.`
           } catch (e: any) {
             logEvent("error", "mad_worktree_create exception", { error: e.message, stack: e.stack })
-            return `❌ Unexpected error creating worktree: ${e.message}`
+            return getUpdateNotification() + `❌ Unexpected error creating worktree: ${e.message}`
           }
         },
       }),
@@ -241,15 +255,15 @@ Shows which tasks are done, in progress, blocked, or have errors.`,
           const worktreeDir = join(gitRoot, "worktrees")
 
           if (!existsSync(worktreeDir)) {
-            return "No active MAD worktrees. Use mad_worktree_create to create one."
+            return getUpdateNotification() + "No active MAD worktrees. Use mad_worktree_create to create one."
           }
 
           const entries = readdirSync(worktreeDir)
           if (entries.length === 0) {
-            return "No active MAD worktrees. Use mad_worktree_create to create one."
+            return getUpdateNotification() + "No active MAD worktrees. Use mad_worktree_create to create one."
           }
 
-          let status = "# MAD Status Dashboard\n\n"
+          let status = getUpdateNotification() + "# MAD Status Dashboard\n\n"
           let total = 0, done = 0, blocked = 0, errors = 0, wip = 0
 
           for (const entry of entries) {
@@ -330,10 +344,10 @@ Returns the results and creates an error file if tests fail.`,
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
 
           if (!existsSync(worktreePath)) {
-            return `Worktree not found: ${worktreePath}`
+            return getUpdateNotification() + `Worktree not found: ${worktreePath}`
           }
 
-          let results = `# Test Results for ${args.worktree}\n\n`
+          let results = getUpdateNotification() + `# Test Results for ${args.worktree}\n\n`
           let hasError = false
           let errorMessages = ""
 
@@ -413,22 +427,22 @@ Handles merge conflicts by reporting them.`,
           const branch = args.worktree.replace(/-/g, "/")
 
           if (!existsSync(worktreePath)) {
-            return `Worktree not found: ${worktreePath}`
+            return getUpdateNotification() + `Worktree not found: ${worktreePath}`
           }
 
           if (!existsSync(doneFile)) {
-            return `Cannot merge: worktree ${args.worktree} is not marked as done. Complete the task first.`
+            return getUpdateNotification() + `Cannot merge: worktree ${args.worktree} is not marked as done. Complete the task first.`
           }
 
           const result = runCommand(`git merge ${branch} --no-edit`, gitRoot)
           if (result.success) {
-            return `✅ Successfully merged ${branch}!\n\n${result.output}`
+            return getUpdateNotification() + `✅ Successfully merged ${branch}!\n\n${result.output}`
           } else {
             const output = result.error || "Unknown error"
             if (output.includes("CONFLICT")) {
-              return `⚠️ Merge conflict detected!\n\n${output}\n\nResolve conflicts manually or use the fixer agent.`
+              return getUpdateNotification() + `⚠️ Merge conflict detected!\n\n${output}\n\nResolve conflicts manually or use the fixer agent.`
             }
-            return `❌ Merge failed:\n${output}`
+            return getUpdateNotification() + `❌ Merge failed:\n${output}`
           }
         },
       }),
@@ -449,19 +463,19 @@ Removes the worktree directory and prunes git worktree references.`,
           const doneFile = join(worktreePath, ".agent-done")
 
           if (!existsSync(worktreePath)) {
-            return `Worktree not found: ${worktreePath}`
+            return getUpdateNotification() + `Worktree not found: ${worktreePath}`
           }
 
           if (!args.force && !existsSync(doneFile)) {
-            return `Worktree ${args.worktree} is not marked as done. Use force=true to cleanup anyway.`
+            return getUpdateNotification() + `Worktree ${args.worktree} is not marked as done. Use force=true to cleanup anyway.`
           }
 
           try {
             await $`git worktree remove ${worktreePath} --force`
             await $`git worktree prune`
-            return `✅ Cleaned up worktree: ${args.worktree}`
+            return getUpdateNotification() + `✅ Cleaned up worktree: ${args.worktree}`
           } catch (e: any) {
-            return `❌ Cleanup failed: ${e.message}`
+            return getUpdateNotification() + `❌ Cleanup failed: ${e.message}`
           }
         },
       }),
@@ -481,14 +495,14 @@ Use this when you've finished implementing the task in a worktree.`,
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
 
           if (!existsSync(worktreePath)) {
-            return `Worktree not found: ${worktreePath}`
+            return getUpdateNotification() + `Worktree not found: ${worktreePath}`
           }
 
           await $`echo ${args.summary} > ${join(worktreePath, ".agent-done")}`
           // Remove error/blocked files
           await $`rm -f ${join(worktreePath, ".agent-error")} ${join(worktreePath, ".agent-blocked")}`
 
-          return `✅ Marked ${args.worktree} as done: ${args.summary}`
+          return getUpdateNotification() + `✅ Marked ${args.worktree} as done: ${args.summary}`
         },
       }),
 
@@ -507,12 +521,12 @@ Use this when you cannot proceed due to missing information or dependencies.`,
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
 
           if (!existsSync(worktreePath)) {
-            return `Worktree not found: ${worktreePath}`
+            return getUpdateNotification() + `Worktree not found: ${worktreePath}`
           }
 
           await $`echo ${args.reason} > ${join(worktreePath, ".agent-blocked")}`
 
-          return `🚫 Marked ${args.worktree} as blocked: ${args.reason}`
+          return getUpdateNotification() + `🚫 Marked ${args.worktree} as blocked: ${args.reason}`
         },
       }),
 
@@ -530,10 +544,10 @@ Use this to understand what needs to be done in a specific worktree.`,
           const taskFile = join(gitRoot, "worktrees", args.worktree, ".agent-task")
 
           if (!existsSync(taskFile)) {
-            return `Task file not found: ${taskFile}`
+            return getUpdateNotification() + `Task file not found: ${taskFile}`
           }
 
-          return readFileSync(taskFile, "utf-8")
+          return getUpdateNotification() + readFileSync(taskFile, "utf-8")
         },
       }),
 
@@ -551,9 +565,9 @@ Creates structured logs in .mad-logs.jsonl for tracking the workflow.`,
         async execute(args, context) {
           try {
             await logEvent(args.level as "info" | "warn" | "error" | "debug", args.message, args.context)
-            return `📝 Logged [${args.level.toUpperCase()}]: ${args.message}`
+            return getUpdateNotification() + `📝 Logged [${args.level.toUpperCase()}]: ${args.message}`
           } catch (e: any) {
-            return `⚠️  Failed to write log: ${e.message}`
+            return getUpdateNotification() + `⚠️  Failed to write log: ${e.message}`
           }
         },
       }),
@@ -571,12 +585,12 @@ Shows progress, worktree statuses, timeline, and statistics in a beautiful dashb
             const worktreeDir = join(gitRoot, "worktrees")
 
             if (!existsSync(worktreeDir)) {
-              return "No active MAD worktrees. Use mad_worktree_create to create one."
+              return getUpdateNotification() + "No active MAD worktrees. Use mad_worktree_create to create one."
             }
 
             const entries = readdirSync(worktreeDir)
             if (entries.length === 0) {
-              return "No active MAD worktrees. Use mad_worktree_create to create one."
+              return getUpdateNotification() + "No active MAD worktrees. Use mad_worktree_create to create one."
             }
 
             let total = 0, done = 0, blocked = 0, errors = 0, wip = 0
@@ -636,7 +650,7 @@ Shows progress, worktree statuses, timeline, and statistics in a beautiful dashb
             const progressBar = "█".repeat(Math.floor(progress / 5)) + "░".repeat(20 - Math.floor(progress / 5))
 
             // Build visualization
-            let output = `
+            let output = getUpdateNotification() + `
 ┌────────────────────────────────────────────────────────────────┐
 │              MAD ORCHESTRATION DASHBOARD                       │
 └────────────────────────────────────────────────────────────────┘
@@ -679,7 +693,7 @@ Shows progress, worktree statuses, timeline, and statistics in a beautiful dashb
 
             return output
           } catch (e: any) {
-            return `❌ Error generating visualization: ${e.message}`
+            return getUpdateNotification() + `❌ Error generating visualization: ${e.message}`
           }
         },
       }),
@@ -696,7 +710,7 @@ Returns the current version, latest version, and whether an update is available.
             const updateInfo = await checkForUpdates()
             
             if (updateInfo.hasUpdate) {
-              return `🔄 Update available!
+              return getUpdateNotification() + `🔄 Update available!
 
 Current version: ${updateInfo.current}
 Latest version:  ${updateInfo.latest}
@@ -704,13 +718,13 @@ Latest version:  ${updateInfo.latest}
 To update, run:
   npx opencode-mad install -g`
             } else {
-              return `✅ You're up to date!
+              return getUpdateNotification() + `✅ You're up to date!
 
 Current version: ${updateInfo.current}
 Latest version:  ${updateInfo.latest}`
             }
           } catch (e: any) {
-            return `❌ Failed to check for updates: ${e.message}`
+            return getUpdateNotification() + `❌ Failed to check for updates: ${e.message}`
           }
         },
       }),
