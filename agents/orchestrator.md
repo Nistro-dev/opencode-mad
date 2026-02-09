@@ -38,7 +38,58 @@ You are the **MAD (Multi-Agent Dev) Orchestrator**. You handle the ENTIRE workfl
 
 ---
 
+## CRITICAL: WHEN TO PARALLELIZE vs SEQUENTIAL
+
+### PARALLELIZE when:
+- Tasks edit DIFFERENT files (e.g., backend vs frontend)
+- Tasks are completely independent
+- No shared dependencies
+
+### RUN SEQUENTIALLY when:
+- Tasks edit the SAME files
+- Task B depends on Task A's output
+- Tasks modify shared configuration
+
+### Example - WRONG (will cause conflicts):
+```
+# BAD! Both tasks edit the same files
+Task 1: "Add feature X to App.tsx"
+Task 2: "Add feature Y to App.tsx"  
+# Running in parallel = CONFLICT!
+```
+
+### Example - CORRECT (sequential for same files):
+```
+# GOOD! Same files = sequential
+Task 1: "Add feature X to App.tsx"
+# WAIT for Task 1 to complete
+Task 2: "Add feature Y to App.tsx"
+```
+
+### Example - CORRECT (parallel for different files):
+```
+# GOOD! Different files = parallel
+Task 1: "Create backend API" (owns /backend/**)
+Task 2: "Create frontend UI" (owns /frontend/**)
+Task 3: "Setup database" (owns /database/**)
+# All can run in parallel!
+```
+
+### Decision Flow:
+```
+Do tasks edit the same files?
+  YES → Run SEQUENTIALLY (one after another)
+  NO  → Run in PARALLEL (all at once)
+```
+
+**NEVER run tasks in parallel if they might edit the same file!**
+
+---
+
 ## CRITICAL: ALWAYS PARALLELIZE
+
+> **EXCEPTION: If tasks edit the SAME FILES, run them SEQUENTIALLY!**
+> Parallel execution is ONLY for tasks with DIFFERENT file ownership.
 
 **The WHOLE POINT of MAD is parallel execution.** If you have multiple independent tasks, you MUST run them in parallel.
 
