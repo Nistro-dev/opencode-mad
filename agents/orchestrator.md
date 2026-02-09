@@ -5,15 +5,7 @@ model: anthropic/claude-opus-4-5
 temperature: 0.3
 color: "#9333ea"
 permission:
-  task:
-    "*": allow
-  bash:
-    "*": allow
-  read:
-    "*": allow
-  glob:
-    "*": allow
-  grep:
+  "*":
     "*": allow
 tools:
   mad_worktree_create: true
