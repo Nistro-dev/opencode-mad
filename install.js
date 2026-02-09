@@ -55,32 +55,22 @@ const folders = ['agents', 'commands', 'plugins', 'skills'];
 // Check if it's an update (any of the folders already exist)
 const isUpdate = folders.some(folder => existsSync(join(targetDir, folder)));
 
-console.log(isUpdate 
-  ? `\n🔄 Updating opencode-mad in ${targetDir}\n`
-  : `\n🚀 Installing opencode-mad to ${targetDir}\n`);
+// Get version from package.json
+const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+const version = pkg.version;
 
+// Copy folders silently
 for (const folder of folders) {
   const src = join(__dirname, folder);
   const dest = join(targetDir, folder);
   
-  if (!existsSync(src)) {
-    console.log(`⚠️  Skipping ${folder} (not found)`);
-    continue;
-  }
+  if (!existsSync(src)) continue;
   
   mkdirSync(dest, { recursive: true });
   cpSync(src, dest, { recursive: true });
-  console.log(`✅ Copied ${folder}/`);
 }
 
-console.log(`
-🎉 ${isUpdate ? 'Update' : 'Installation'} complete!
-
-${isGlobal ? 'MAD is now available in all your projects.' : 'MAD is now available in this project.'}
-
-Just start talking to the orchestrator:
-  "Create a full-stack app with Express and React"
-
-Or use the /mad command:
-  /mad Create a Task Timer app
-`);
+// Single line output
+const action = isUpdate ? 'updated' : 'installed';
+const location = isGlobal ? '~/.config/opencode' : '.opencode';
+console.log(`opencode-mad v${version} ${action} to ${location}`);
