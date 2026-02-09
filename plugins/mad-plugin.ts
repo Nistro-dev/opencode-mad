@@ -13,7 +13,7 @@ import { execSync } from "child_process"
  */
 
 // Current version of opencode-mad
-const CURRENT_VERSION = "0.2.0"
+const CURRENT_VERSION = "0.3.0"
 
 export const MADPlugin: Plugin = async ({ project, client, $, directory, worktree }) => {
   
