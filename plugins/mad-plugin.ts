@@ -13,7 +13,7 @@ import { execSync } from "child_process"
  */
 
 // Current version of opencode-mad
-const CURRENT_VERSION = "0.3.7"
+const CURRENT_VERSION = "0.3.8"
 
 // Update notification state (shown only once per session)
 let updateNotificationShown = false
@@ -424,7 +424,7 @@ Handles merge conflicts by reporting them.`,
           const gitRoot = getGitRoot()
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
           const doneFile = join(worktreePath, ".agent-done")
-          const branch = args.worktree.replace(/-/g, "/")
+          const branch = args.worktree
 
           if (!existsSync(worktreePath)) {
             return getUpdateNotification() + `Worktree not found: ${worktreePath}`
