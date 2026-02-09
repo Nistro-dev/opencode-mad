@@ -1,5 +1,27 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
 *.log
+
+# OS
 .DS_Store
 Thumbs.db
+
+# MAD agent files (never commit)
+.agent-task
+.agent-done
+.agent-blocked
+.agent-error
+.mad-logs.jsonl
+
+# Worktrees directory
+worktrees/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env

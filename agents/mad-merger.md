@@ -1,6 +1,7 @@
 ---
 description: MAD Merger - Resolves git merge conflicts with full context of both branches
 mode: subagent
+model: anthropic/claude-opus-4-5
 temperature: 0.1
 color: "#f59e0b"
 tools:

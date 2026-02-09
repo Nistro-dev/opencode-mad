@@ -1,97 +1,143 @@
 # opencode-mad
 
-**Multi-Agent Dev** - Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
+**Multi-Agent Dev (MAD)** - Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Built on OpenCode's native Task tool for true parallel execution.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents.
 
 ## Features
 
-- 🎯 **Smart Planning** - Planner agent asks clarifying questions before coding
-- 📁 **File Ownership** - Each agent has exclusive files, preventing conflicts
-- 🔀 **Parallel Execution** - Multiple developers work simultaneously
-- 🔧 **Conflict Resolution** - Dedicated merger agent handles git conflicts
-- ✅ **Integration Testing** - Fixer agent ensures everything works together
+- **Smart Planning** - Orchestrator asks clarifying questions before coding
+- **File Ownership** - Each agent has exclusive files, preventing merge conflicts
+- **Parallel Execution** - Multiple developers work simultaneously in git worktrees
+- **Automated Testing** - Tester agent validates code before merge
+- **Conflict Resolution** - Dedicated merger agent handles git conflicts
+- **Integration Fixes** - Fixer agent ensures everything works together
 
 ## Installation
 
-Copy this folder to your project's `.opencode/` directory:
+### Option 1: Copy to your project (Recommended)
 
+Copy the contents to your project's `.opencode/` directory:
+
+```bash
+# Clone the repo
+git clone https://github.com/Nistro-dev/opencode-mad.git
+
+# Copy to your project
+cp -r opencode-mad/agents your-project/.opencode/
+cp -r opencode-mad/commands your-project/.opencode/
+cp -r opencode-mad/plugins your-project/.opencode/
+cp -r opencode-mad/skills your-project/.opencode/
+```
+
+Your project structure should look like:
 ```
 your-project/
-└── .opencode/
-    ├── agents/
-    │   ├── orchestrator.md
-    │   ├── mad-planner.md
-    │   ├── mad-developer.md
-    │   ├── mad-merger.md
-    │   └── mad-fixer.md
-    ├── commands/
-    │   ├── mad.md
-    │   ├── mad-status.md
-    │   ├── mad-fix.md
-    │   └── mad-merge-all.md
-    ├── plugins/
-    │   └── mad-plugin.ts
-    └── skills/
-        └── mad-workflow/
-            └── SKILL.md
+├── .opencode/
+│   ├── agents/
+│   │   ├── orchestrator.md      # Main coordinator (primary agent)
+│   │   ├── mad-developer.md     # Implements features
+│   │   ├── mad-tester.md        # Tests before merge
+│   │   ├── mad-merger.md        # Resolves conflicts
+│   │   ├── mad-fixer.md         # Fixes integration issues
+│   │   └── mad-planner.md       # (Optional) Planning helper
+│   ├── commands/
+│   │   ├── mad.md
+│   │   ├── mad-status.md
+│   │   ├── mad-visualize.md
+│   │   ├── mad-fix.md
+│   │   └── mad-merge-all.md
+│   ├── plugins/
+│   │   └── mad-plugin.ts        # Custom tools
+│   └── skills/
+│       └── mad-workflow/
+└── ... your code
+```
+
+### Option 2: Global installation
+
+For use across all projects, copy to your global config:
+
+```bash
+cp -r opencode-mad/agents ~/.config/opencode/agents/
+cp -r opencode-mad/commands ~/.config/opencode/commands/
+cp -r opencode-mad/plugins ~/.config/opencode/plugins/
+cp -r opencode-mad/skills ~/.config/opencode/skills/
+```
+
+### Option 3: npm (coming soon)
+
+```json
+// opencode.json
+{
+  "plugin": ["opencode-mad"]
+}
 ```
 
 ## Usage
 
-### Quick Start
-
-Use the `/mad` command to start orchestration:
+Once installed, just talk to the orchestrator naturally:
 
 ```
-/mad Create a Task Timer app with Express backend and vanilla JS frontend
+You: Create a Task Timer app with Express backend and React frontend
+
+Orchestrator: Before I create the development plan, I need to clarify:
+1. Database: SQLite, PostgreSQL, or in-memory?
+2. Authentication needed?
+3. Dark mode or light mode?
+...
+
+You: SQLite, no auth, dark mode
+
+Orchestrator: Here's the development plan:
+[Shows plan with file ownership]
+
+Ready to proceed? Reply "GO"
+
+You: GO
+
+Orchestrator: [Creates worktrees, spawns developers in parallel...]
 ```
 
-The workflow will:
-1. **Planner** asks you questions about architecture, features, etc.
-2. You review the plan and say **"GO"**
-3. **Developers** work in parallel on their assigned files
-4. **Merger** resolves any conflicts
-5. **Fixer** ensures integration works
-6. Done! 🎉
-
-### Commands
+### Commands (Optional)
 
 | Command | Description |
 |---------|-------------|
-| `/mad <task>` | Start parallel orchestration for a task |
-| `/mad-status` | Show status of all worktrees |
+| `/mad <task>` | Start parallel orchestration |
+| `/mad-status` | Show worktree status |
+| `/mad-visualize` | ASCII dashboard |
 | `/mad-fix <worktree>` | Fix errors in a worktree |
 | `/mad-merge-all` | Merge all completed worktrees |
 
-### Agents
+### Reporting Bugs
 
-| Agent | Mode | Description |
-|-------|------|-------------|
-| `orchestrator` | primary | Coordinates the entire workflow |
-| `mad-planner` | subagent | Asks questions, creates detailed plan with file ownership |
-| `mad-developer` | subagent | Implements tasks in isolated worktrees |
-| `mad-merger` | subagent | Resolves git merge conflicts intelligently |
-| `mad-fixer` | subagent | Fixes integration issues after merges |
+Just tell the orchestrator about the bug - it will delegate to a fixer:
+
+```
+You: There's a CORS error, the frontend can't reach the backend
+
+Orchestrator: I'll spawn a fixer to resolve this.
+[Delegates to mad-fixer]
+```
 
 ## How It Works
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  /mad "Create a full-stack app..."                          │
+│  You: "Create a full-stack app..."                          │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  🎯 PLANNER                                                  │
+│  ORCHESTRATOR (primary agent)                               │
 │  - Asks clarifying questions                                │
-│  - Defines architecture & file ownership                    │
+│  - Creates plan with file ownership                         │
 │  - Waits for "GO"                                           │
 └─────────────────────────────────────────────────────────────┘
                             │ "GO"
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  🔨 DEVELOPERS (parallel)                                    │
+│  DEVELOPERS (parallel in git worktrees)                     │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
 │  │ Backend  │  │ Frontend │  │  Config  │                  │
 │  │ /backend │  │ /frontend│  │ /root    │                  │
@@ -101,25 +147,61 @@ The workflow will:
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  🔀 MERGER (if needed)                                       │
+│  TESTERS (parallel)                                         │
+│  - Test APIs with curl                                      │
+│  - Check frontend for errors                                │
+│  - Verify integration                                       │
+│  - Fix simple bugs or block if major issues                 │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  MERGER (if conflicts)                                      │
 │  - Understands both branches' intent                        │
 │  - Combines functionality intelligently                     │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  🔧 FIXER (if needed)                                        │
-│  - Fixes integration issues                                 │
+│  FIXER (if integration issues)                              │
+│  - Fixes cross-component bugs                               │
 │  - Ensures frontend + backend work together                 │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
-                        DONE ✅
+                        DONE! 
 ```
+
+## Agents
+
+| Agent | Mode | Description |
+|-------|------|-------------|
+| `orchestrator` | primary | Coordinates workflow, asks questions, creates plans. **Never codes directly.** |
+| `mad-developer` | subagent | Implements tasks in isolated worktrees |
+| `mad-tester` | subagent | Tests code before merge |
+| `mad-merger` | subagent | Resolves git merge conflicts |
+| `mad-fixer` | subagent | Fixes integration issues |
+
+## Custom Tools
+
+The plugin provides these tools:
+
+| Tool | Description |
+|------|-------------|
+| `mad_worktree_create` | Create isolated git worktree |
+| `mad_status` | Get status of all worktrees |
+| `mad_visualize` | ASCII art dashboard |
+| `mad_test` | Run tests on a worktree |
+| `mad_merge` | Merge completed worktree |
+| `mad_cleanup` | Remove finished worktree |
+| `mad_done` | Mark task as completed |
+| `mad_blocked` | Mark task as blocked |
+| `mad_read_task` | Read task description |
+| `mad_log` | Log orchestration events |
 
 ## File Ownership System
 
-The key to avoiding merge conflicts is **explicit file ownership**. Each developer agent is assigned specific files/folders they can modify:
+The key to avoiding merge conflicts is **explicit file ownership**:
 
 ```
 Task 1 (backend):
@@ -135,60 +217,26 @@ Task 3 (config):
   CANNOT TOUCH: /backend/**, /frontend/**
 ```
 
-The planner defines these boundaries, and developers strictly respect them.
-
-## Example Session
-
-```
-You: /mad Create a Task Timer app - track time spent on tasks
-
-Planner: Before I create the plan, I need to clarify:
-
-1. Frontend: Vanilla JS, React, or Vue?
-2. Backend: Express, Fastify, or none?
-3. Database: SQLite, PostgreSQL, or in-memory?
-4. Dark mode or light mode?
-...
-
-You: Vanilla JS, Express, SQLite, dark mode
-
-Planner: Here's the development plan:
-
-## Task 1: Backend API
-OWNS: /backend/**
-- Express server on port 3001
-- SQLite database
-- CRUD endpoints for tasks
-
-## Task 2: Frontend UI  
-OWNS: /frontend/**
-- index.html with task list
-- Dark mode CSS
-- Timer logic in app.js
-
-Ready to proceed? Reply "GO"
-
-You: GO
-
-Orchestrator: Creating worktrees and spawning developers...
-✅ feat-backend-api: Developer working...
-✅ feat-frontend-ui: Developer working...
-
-[Time passes...]
-
-Orchestrator: All tasks complete! Merging...
-✅ Merged feat-backend-api
-✅ Merged feat-frontend-ui
-✅ Final tests passing
-
-🎉 Task Timer app is ready!
-```
-
 ## Requirements
 
-- OpenCode 1.0+
+- [OpenCode](https://opencode.ai) 1.0+
 - Git (for worktrees)
-- A git repository (initialized)
+- Node.js 18+
+
+## Configuration
+
+The orchestrator uses these defaults:
+- Model: `anthropic/claude-opus-4-5`
+- Never pushes automatically (only commits)
+- Always asks questions before planning
+
+To change the model, edit `.opencode/agents/orchestrator.md`:
+
+```yaml
+---
+model: anthropic/claude-sonnet-4-20250514
+---
+```
 
 ## License
 

@@ -1,6 +1,7 @@
 ---
 description: MAD Developer - Implements tasks in isolated worktrees with full coding capabilities
 mode: subagent
+model: anthropic/claude-opus-4-5
 temperature: 0.2
 color: "#22c55e"
 tools:
