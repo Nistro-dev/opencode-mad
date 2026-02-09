@@ -23,6 +23,12 @@ npx opencode-mad install
 
 # Or install globally (all projects)
 npx opencode-mad install -g
+
+# Update existing installation
+npx opencode-mad update -g
+
+# Check version
+npx opencode-mad version
 ```
 
 ### Option 2: Manual copy
@@ -186,23 +192,20 @@ The plugin provides these tools:
 | `mad_blocked` | Mark task as blocked |
 | `mad_read_task` | Read task description |
 | `mad_log` | Log orchestration events |
+| `mad_check_update` | Check for plugin updates |
 
-## File Ownership System
+## Updates
 
-The key to avoiding merge conflicts is **explicit file ownership**:
+opencode-mad checks for updates automatically and notifies you when a new version is available.
 
+To update manually:
+```bash
+npx opencode-mad update -g
 ```
-Task 1 (backend):
-  OWNS: /backend/**
-  CANNOT TOUCH: /frontend/**, /package.json
 
-Task 2 (frontend):  
-  OWNS: /frontend/**
-  CANNOT TOUCH: /backend/**, /package.json
-
-Task 3 (config):
-  OWNS: /package.json, /README.md, /.gitignore
-  CANNOT TOUCH: /backend/**, /frontend/**
+To check for updates:
+```bash
+npx opencode-mad version
 ```
 
 ## Requirements
