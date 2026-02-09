@@ -1,6 +1,6 @@
 {
   "name": "opencode-mad",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Multi-Agent Dev - Parallel development orchestration plugin for OpenCode",
   "type": "module",
   "main": "plugins/mad-plugin.ts",
