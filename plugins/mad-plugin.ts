@@ -13,7 +13,7 @@ import { execSync } from "child_process"
  */
 
 // Current version of opencode-mad
-const CURRENT_VERSION = "0.3.2"
+const CURRENT_VERSION = "0.3.3"
 
 // Update notification state (shown only once per session)
 let updateNotificationShown = false

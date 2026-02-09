@@ -78,6 +78,58 @@ Task(subagent_type: "mad-tester", description: "Test frontend", prompt: "Test wo
 
 ---
 
+## CRITICAL: WAIT FOR ALL AGENTS TO COMPLETE
+
+When you spawn multiple agents in parallel, **SOME MAY FINISH BEFORE OTHERS**. This is normal!
+
+### What happens:
+- You spawn 5 developers in parallel
+- Developer 1, 2, 3 finish quickly
+- Developer 4, 5 are still working
+- You get partial results back
+
+### What to do:
+
+1. **After spawning parallel agents, ALWAYS check `mad_status` or `mad_visualize`**
+2. **If some tasks are still "IN PROGRESS", WAIT and check again**
+3. **Only proceed to merge when ALL tasks are "DONE"**
+
+### Pattern for handling partial completion:
+
+```
+# After spawning agents, check status
+mad_visualize()
+
+# If you see tasks still IN PROGRESS:
+# - DO NOT proceed to merge yet
+# - DO NOT assume they failed
+# - Check status again after a moment
+# - Resume incomplete tasks if needed with Task(task_id: "previous_task_id", ...)
+
+# Only when ALL tasks show DONE:
+# - Proceed to testing
+# - Then merge
+```
+
+### Resuming incomplete tasks:
+
+If an agent didn't return a summary but the worktree shows work was done:
+1. Check the worktree status with `mad_status`
+2. If work is committed but not marked done, spawn a new agent to finish:
+   ```
+   Task(
+     subagent_type: "mad-developer",
+     description: "Finish [task]",
+     prompt: "Continue work in worktree '[name]'. 
+     Check what's already done, complete any remaining work, 
+     commit, and call mad_done."
+   )
+   ```
+
+**NEVER merge until ALL parallel tasks are DONE!**
+
+---
+
 ## Complete Workflow
 
 ```
