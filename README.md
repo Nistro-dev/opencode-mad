@@ -15,9 +15,17 @@ Decompose complex tasks into parallelizable subtasks, each running in isolated g
 
 ## Installation
 
-### Option 1: Copy to your project (Recommended)
+### Option 1: npx (Recommended)
 
-Copy the contents to your project's `.opencode/` directory:
+```bash
+# Install to current project
+npx opencode-mad install
+
+# Or install globally (all projects)
+npx opencode-mad install -g
+```
+
+### Option 2: Manual copy
 
 ```bash
 # Clone the repo
@@ -28,50 +36,30 @@ cp -r opencode-mad/agents your-project/.opencode/
 cp -r opencode-mad/commands your-project/.opencode/
 cp -r opencode-mad/plugins your-project/.opencode/
 cp -r opencode-mad/skills your-project/.opencode/
-```
 
-Your project structure should look like:
-```
-your-project/
-├── .opencode/
-│   ├── agents/
-│   │   ├── orchestrator.md      # Main coordinator (primary agent)
-│   │   ├── mad-developer.md     # Implements features
-│   │   ├── mad-tester.md        # Tests before merge
-│   │   ├── mad-merger.md        # Resolves conflicts
-│   │   ├── mad-fixer.md         # Fixes integration issues
-│   │   └── mad-planner.md       # (Optional) Planning helper
-│   ├── commands/
-│   │   ├── mad.md
-│   │   ├── mad-status.md
-│   │   ├── mad-visualize.md
-│   │   ├── mad-fix.md
-│   │   └── mad-merge-all.md
-│   ├── plugins/
-│   │   └── mad-plugin.ts        # Custom tools
-│   └── skills/
-│       └── mad-workflow/
-└── ... your code
-```
-
-### Option 2: Global installation
-
-For use across all projects, copy to your global config:
-
-```bash
+# Or copy globally
 cp -r opencode-mad/agents ~/.config/opencode/agents/
 cp -r opencode-mad/commands ~/.config/opencode/commands/
 cp -r opencode-mad/plugins ~/.config/opencode/plugins/
 cp -r opencode-mad/skills ~/.config/opencode/skills/
 ```
 
-### Option 3: npm (coming soon)
+### Project structure after installation
 
-```json
-// opencode.json
-{
-  "plugin": ["opencode-mad"]
-}
+```
+your-project/
+├── .opencode/
+│   ├── agents/
+│   │   ├── orchestrator.md      # Main coordinator
+│   │   ├── mad-developer.md     # Implements features
+│   │   ├── mad-tester.md        # Tests before merge
+│   │   ├── mad-merger.md        # Resolves conflicts
+│   │   └── mad-fixer.md         # Fixes integration
+│   ├── commands/
+│   ├── plugins/
+│   │   └── mad-plugin.ts
+│   └── skills/
+└── ... your code
 ```
 
 ## Usage
