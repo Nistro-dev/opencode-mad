@@ -13,7 +13,7 @@ import { execSync } from "child_process"
  */
 
 // Current version of opencode-mad
-const CURRENT_VERSION = "0.3.1"
+const CURRENT_VERSION = "0.3.2"
 
 // Update notification state (shown only once per session)
 let updateNotificationShown = false
@@ -434,7 +434,7 @@ Handles merge conflicts by reporting them.`,
             return getUpdateNotification() + `Cannot merge: worktree ${args.worktree} is not marked as done. Complete the task first.`
           }
 
-          const result = runCommand(`git merge ${branch} --no-edit`, gitRoot)
+          const result = runCommand(`git merge --no-ff ${branch} --no-edit`, gitRoot)
           if (result.success) {
             return getUpdateNotification() + `✅ Successfully merged ${branch}!\n\n${result.output}`
           } else {
