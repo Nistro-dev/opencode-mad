@@ -11,6 +11,10 @@ import { execSync } from "child_process"
  * The orchestrator agent decomposes tasks and delegates to developer subagents
  * running in parallel via OpenCode's Task tool.
  */
+
+// Current version of opencode-mad
+const CURRENT_VERSION = "0.2.0"
+
 export const MADPlugin: Plugin = async ({ project, client, $, directory, worktree }) => {
   
   /**
@@ -71,6 +75,38 @@ export const MADPlugin: Plugin = async ({ project, client, $, directory, worktre
       // Silent fail for logging - don't break the workflow
       console.error("Failed to write log:", e)
     }
+  }
+
+  /**
+   * Check for updates from npm registry
+   */
+  const checkForUpdates = async (): Promise<{ hasUpdate: boolean; current: string; latest: string }> => {
+    try {
+      const result = runCommand("npm view opencode-mad version")
+      if (result.success) {
+        const latestVersion = result.output.trim()
+        return {
+          hasUpdate: latestVersion !== CURRENT_VERSION,
+          current: CURRENT_VERSION,
+          latest: latestVersion
+        }
+      }
+    } catch (e) {
+      // Silent fail - don't break startup if npm check fails
+    }
+    return { hasUpdate: false, current: CURRENT_VERSION, latest: CURRENT_VERSION }
+  }
+
+  // Check for updates at plugin initialization
+  try {
+    const updateInfo = await checkForUpdates()
+    if (updateInfo.hasUpdate) {
+      console.log(`\n🔄 opencode-mad update available: ${updateInfo.current} → ${updateInfo.latest}`)
+      console.log(`   Run: npx opencode-mad install -g\n`)
+      logEvent("info", "Update available", { current: updateInfo.current, latest: updateInfo.latest })
+    }
+  } catch (e) {
+    // Silent fail - don't break plugin initialization
   }
 
   return {
@@ -644,6 +680,37 @@ Shows progress, worktree statuses, timeline, and statistics in a beautiful dashb
             return output
           } catch (e: any) {
             return `❌ Error generating visualization: ${e.message}`
+          }
+        },
+      }),
+
+      /**
+       * Check for opencode-mad updates
+       */
+      mad_check_update: tool({
+        description: `Check if a newer version of opencode-mad is available on npm.
+Returns the current version, latest version, and whether an update is available.`,
+        args: {},
+        async execute(args, context) {
+          try {
+            const updateInfo = await checkForUpdates()
+            
+            if (updateInfo.hasUpdate) {
+              return `🔄 Update available!
+
+Current version: ${updateInfo.current}
+Latest version:  ${updateInfo.latest}
+
+To update, run:
+  npx opencode-mad install -g`
+            } else {
+              return `✅ You're up to date!
+
+Current version: ${updateInfo.current}
+Latest version:  ${updateInfo.latest}`
+            }
+          } catch (e: any) {
+            return `❌ Failed to check for updates: ${e.message}`
           }
         },
       }),
