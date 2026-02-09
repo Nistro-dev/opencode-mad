@@ -6,9 +6,12 @@
  * Usage:
  *   npx opencode-mad install        # Install to current project (.opencode/)
  *   npx opencode-mad install -g     # Install globally (~/.config/opencode/)
+ *   npx opencode-mad update         # Update in current project (alias for install)
+ *   npx opencode-mad update -g      # Update globally (alias for install -g)
+ *   npx opencode-mad version        # Show version
  */
 
-import { cpSync, existsSync, mkdirSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
@@ -19,13 +22,24 @@ const args = process.argv.slice(2);
 const command = args[0];
 const isGlobal = args.includes('-g') || args.includes('--global');
 
-if (command !== 'install') {
+// Handle version command
+if (command === 'version' || command === '-v' || command === '--version') {
+  const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+  console.log(`opencode-mad v${pkg.version}`);
+  process.exit(0);
+}
+
+// 'update' is an alias for 'install'
+if (command !== 'install' && command !== 'update') {
   console.log(`
 opencode-mad - Multi-Agent Dev plugin for OpenCode
 
 Usage:
   npx opencode-mad install        Install to current project (.opencode/)
   npx opencode-mad install -g     Install globally (~/.config/opencode/)
+  npx opencode-mad update         Update in current project (alias for install)
+  npx opencode-mad update -g      Update globally (alias for install -g)
+  npx opencode-mad version        Show version
 
 More info: https://github.com/Nistro-dev/opencode-mad
 `);
@@ -38,7 +52,12 @@ const targetDir = isGlobal
 
 const folders = ['agents', 'commands', 'plugins', 'skills'];
 
-console.log(`\n🚀 Installing opencode-mad to ${targetDir}\n`);
+// Check if it's an update (any of the folders already exist)
+const isUpdate = folders.some(folder => existsSync(join(targetDir, folder)));
+
+console.log(isUpdate 
+  ? `\n🔄 Updating opencode-mad in ${targetDir}\n`
+  : `\n🚀 Installing opencode-mad to ${targetDir}\n`);
 
 for (const folder of folders) {
   const src = join(__dirname, folder);
@@ -55,7 +74,7 @@ for (const folder of folders) {
 }
 
 console.log(`
-🎉 Installation complete!
+🎉 ${isUpdate ? 'Update' : 'Installation'} complete!
 
 ${isGlobal ? 'MAD is now available in all your projects.' : 'MAD is now available in this project.'}
 
