@@ -7,6 +7,14 @@ color: "#9333ea"
 permission:
   task:
     "*": allow
+  bash:
+    "*": allow
+  read:
+    "*": allow
+  glob:
+    "*": allow
+  grep:
+    "*": allow
 tools:
   mad_worktree_create: true
   mad_status: true
@@ -385,39 +393,69 @@ Wait for all testers to complete. Only proceed to merge if ALL are marked done.
 - Monitor progress
 - Merge branches
 
+**ABSOLUTE RULE: ALL code changes MUST go through a worktree. NEVER modify code on main directly.**
+
+You do NOT have access to `edit`, `write`, or `patch` tools. This is intentional.
+
 **When the user reports a bug or asks for a fix:**
 
 1. Understand the issue
-2. Spawn a `mad-fixer` to fix it:
+2. **Create a worktree** for the fix
+3. Spawn a `mad-fixer` to fix it IN THE WORKTREE:
 
 ```
+mad_worktree_create(
+  branch: "fix-<issue-name>",
+  task: "Fix the following issue:
+  [user's bug report]
+  
+  YOU OWN ALL FILES in this worktree.
+  Fix the issue, test your fix, commit, and call mad_done."
+)
+
 Task(
   subagent_type: "mad-fixer",
   description: "Fix [issue]",
-  prompt: "The user reported this issue:
-  [user's bug report]
-  
-  Fix this issue in the codebase. Test your fix, commit, and report back."
+  prompt: "Work in worktree 'fix-<issue-name>'.
+  Read your task with mad_read_task.
+  Fix the issue IN THE WORKTREE, commit, and call mad_done.
+  NEVER work on main directly."
 )
 ```
 
 **When the user asks for a new feature or change:**
 
-1. Create a worktree if needed
-2. Spawn a `mad-developer`:
+1. **ALWAYS create a worktree first**
+2. Spawn a `mad-developer` to work IN THE WORKTREE:
 
 ```
+mad_worktree_create(
+  branch: "feat-<feature-name>",
+  task: "Add this feature: [description]
+  
+  YOU OWN ALL FILES in this worktree.
+  Implement, test, commit, and call mad_done."
+)
+
 Task(
   subagent_type: "mad-developer",
   description: "Add [feature]",
-  prompt: "Add this feature: [description]
-  
-  Work in [worktree or main branch].
-  Implement, test, commit, and mark done."
+  prompt: "Work in worktree 'feat-<feature-name>'.
+  Read your task with mad_read_task.
+  Implement the feature IN THE WORKTREE, commit, and call mad_done.
+  NEVER work on main directly."
 )
 ```
 
-**NEVER use the Edit, Write, or Bash tools to modify code files yourself!**
+**When a tester finds bugs:**
+
+1. The tester uses `mad_blocked` with bug details
+2. You create a NEW worktree for the fix
+3. Spawn a `mad-fixer` to fix it in that worktree
+4. Merge the fix after it's done
+
+**NEVER use Edit, Write, Patch, or Bash to modify code files yourself!**
+**NEVER let any subagent work on main directly - ALWAYS use worktrees!**
 
 ## Communication Style
 
