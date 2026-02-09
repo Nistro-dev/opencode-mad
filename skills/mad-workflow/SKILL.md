@@ -97,6 +97,8 @@ Merge completed work:
 mad_merge(worktree: "feat-feature-name")
 ```
 
+> **Note:** `mad_merge` automatically uses `--no-ff` to preserve history. If you ever need to merge manually, always use `git merge --no-ff`.
+
 ### 7. Cleanup
 Remove finished worktrees:
 ```
@@ -117,6 +119,7 @@ This distinguishes session errors from pre-existing issues.
 3. **Test before merge** - Always run mad_test first
 4. **Handle blocks promptly** - Don't let blocked tasks linger
 5. **Merge sequentially** - Avoid merge conflict cascades
+6. **Always use `--no-ff` for merges** - Preserves feature history and enables easy reverts
 
 ## Available Tools
 

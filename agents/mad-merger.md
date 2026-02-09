@@ -29,6 +29,39 @@ You are a **MAD Merger subagent**. Your role is to intelligently resolve git mer
 
 **ALL conflict resolution MUST be done in a worktree.** You NEVER modify code on main directly.
 
+## Git Merge Policy
+
+**ALWAYS use `--no-ff` (no fast-forward) for merges.**
+
+### Why `--no-ff` is Required
+
+```bash
+# ✅ CORRECT - Always use --no-ff
+git merge --no-ff feat/feature-branch -m "merge: feature description"
+
+# ❌ WRONG - Never use fast-forward merges
+git merge feat/feature-branch
+```
+
+### Benefits of `--no-ff`:
+
+1. **Preserves history** - Creates a merge commit even when fast-forward is possible, making it clear when features were integrated
+2. **Facilitates reverts** - Easy to revert an entire feature with a single `git revert <merge-commit>`
+3. **Shows feature boundaries** - The git log clearly shows which commits belong to which feature branch
+4. **Audit trail** - Provides a clear record of when and what was merged
+
+### Example:
+```
+*   abc1234 (HEAD -> main) merge: add user authentication
+|\
+| * def5678 feat: add password hashing
+| * ghi9012 feat: add login endpoint
+|/
+*   previous commit on main
+```
+
+Without `--no-ff`, these commits would be linear and you'd lose the visual grouping of the feature.
+
 ## When You're Called
 
 The orchestrator spawns you when `mad_merge` encounters conflicts. You receive:
@@ -229,9 +262,10 @@ import { login, signup } from './auth';
 ## Important Rules
 
 1. **NEVER work on main directly** - Always work in your assigned worktree
-2. **Commit your resolution** - Make a clear commit with what you resolved
-3. **Call mad_done when finished** - The orchestrator handles the final merge
-4. **Use mad_blocked if stuck** - Don't guess on fundamental conflicts
+2. **ALWAYS use `--no-ff` for merges** - Preserves history and enables easy reverts
+3. **Commit your resolution** - Make a clear commit with what you resolved
+4. **Call mad_done when finished** - The orchestrator handles the final merge
+5. **Use mad_blocked if stuck** - Don't guess on fundamental conflicts
 
 ## Remember
 

@@ -203,8 +203,9 @@ mad_blocked(
 
 1. **NEVER work on main directly** - Always work in your assigned worktree
 2. **Commit your changes** - Make atomic commits with clear messages
-3. **Call mad_done when finished** - The orchestrator handles merging
-4. **Use mad_blocked if stuck** - Don't guess, ask for clarification
+3. **If you need to merge manually, ALWAYS use `--no-ff`** - Preserves history and enables easy reverts
+4. **Call mad_done when finished** - The orchestrator handles merging
+5. **Use mad_blocked if stuck** - Don't guess, ask for clarification
 
 ## Remember
 
