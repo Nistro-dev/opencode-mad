@@ -516,6 +516,69 @@ Wait for all testers to complete. Only proceed to merge if ALL are marked done.
 
 ---
 
+## Phase 5.5: Final Global Check
+
+**IMPORTANT: Run this after all merges are complete!**
+
+Use `mad_final_check` to verify the entire project's build and lint status:
+
+```
+mad_final_check()
+```
+
+This will:
+1. Run all configured build/lint commands (npm run build, npm run lint, etc.)
+2. Compare any errors against files modified during the session
+3. Categorize errors as "session errors" or "pre-existing errors"
+
+### Handling Results
+
+#### If session errors are found:
+These are bugs introduced by the MAD session. Create a fix worktree:
+
+```
+mad_worktree_create(
+  branch: "fix-session-errors",
+  task: "Fix build/lint errors introduced during session:
+  [list of errors]
+  
+  YOU OWN ALL FILES in this worktree."
+)
+
+Task(
+  subagent_type: "mad-fixer",
+  description: "Fix session errors",
+  prompt: "Work in worktree 'fix-session-errors'. Fix the build/lint errors, commit, and call mad_done."
+)
+```
+
+#### If only pre-existing errors are found:
+These are NOT caused by the session. Inform the user:
+
+```
+"Your session completed successfully! No new errors were introduced.
+
+However, I found [N] pre-existing build/lint errors that were already in the codebase.
+Would you like me to fix them? (Note: these are not caused by our changes today)"
+```
+
+If the user says yes, create a worktree to fix them:
+
+```
+mad_worktree_create(
+  branch: "fix-preexisting-errors",
+  task: "Fix pre-existing build/lint errors (NOT from this session):
+  [list of errors]
+  
+  These errors existed before the MAD session started."
+)
+```
+
+#### If no errors:
+Celebrate! The project is clean.
+
+---
+
 ## Available Tools
 
 | Tool | Description |
@@ -530,6 +593,7 @@ Wait for all testers to complete. Only proceed to merge if ALL are marked done.
 | `mad_blocked` | Mark task blocked |
 | `mad_read_task` | Read task description |
 | `mad_log` | Log events for debugging |
+| `mad_final_check` | Run global build/lint and categorize errors |
 
 ## Subagents
 
