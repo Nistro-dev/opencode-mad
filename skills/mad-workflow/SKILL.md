@@ -103,6 +103,13 @@ Remove finished worktrees:
 mad_cleanup(worktree: "feat-feature-name")
 ```
 
+### 8. Final Check
+Verify global project health:
+```
+mad_final_check()
+```
+This distinguishes session errors from pre-existing issues.
+
 ## Best Practices
 
 1. **Keep subtasks focused** - Each should be completable in one session
@@ -123,6 +130,7 @@ mad_cleanup(worktree: "feat-feature-name")
 | `mad_done` | Mark task complete |
 | `mad_blocked` | Mark task blocked |
 | `mad_read_task` | Read task description |
+| `mad_final_check` | Run global build/lint and categorize errors |
 
 ## Example
 

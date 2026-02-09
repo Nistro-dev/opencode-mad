@@ -728,6 +728,269 @@ Latest version:  ${updateInfo.latest}`
           }
         },
       }),
+
+      /**
+       * Final check - run global build/lint and categorize errors
+       */
+      mad_final_check: tool({
+        description: `Run global build/lint checks on the main project after all merges.
+Compares errors against files modified during the MAD session to distinguish:
+- Session errors: caused by changes made during this session
+- Pre-existing errors: already present before the session started
+
+Use this at the end of the MAD workflow to ensure code quality.`,
+        args: {
+          baseCommit: tool.schema.string().optional().describe("The commit SHA from before the MAD session started. If not provided, will try to detect from reflog."),
+        },
+        async execute(args, context) {
+          try {
+            const gitRoot = getGitRoot()
+            
+            // 1. Determine base commit for comparison
+            let baseCommit = args.baseCommit
+            if (!baseCommit) {
+              // Try to find the commit before MAD session started (look for last commit before worktrees were created)
+              const reflogResult = runCommand('git reflog --format="%H %gs" -n 50', gitRoot)
+              if (reflogResult.success) {
+                // Find first commit that's not a merge from a MAD branch
+                const lines = reflogResult.output.split('\n')
+                for (const line of lines) {
+                  if (!line.includes('merge') || (!line.includes('feat-') && !line.includes('fix-'))) {
+                    baseCommit = line.split(' ')[0]
+                    break
+                  }
+                }
+              }
+              if (!baseCommit) {
+                baseCommit = 'HEAD~10' // Fallback
+              }
+            }
+            
+            // 2. Get list of files modified during session
+            const diffResult = runCommand(`git diff ${baseCommit}..HEAD --name-only`, gitRoot)
+            const modifiedFiles = diffResult.success 
+              ? diffResult.output.split('\n').filter(f => f.trim()).map(f => f.trim())
+              : []
+            
+            let report = getUpdateNotification() + `# Final Project Check\n\n`
+            report += `📊 **Session Summary:**\n`
+            report += `- Base commit: \`${baseCommit.substring(0, 8)}\`\n`
+            report += `- Files modified: ${modifiedFiles.length}\n\n`
+            
+            // 3. Detect project type and run checks
+            const packageJson = join(gitRoot, "package.json")
+            const goMod = join(gitRoot, "go.mod")
+            const cargoToml = join(gitRoot, "Cargo.toml")
+            const pyProject = join(gitRoot, "pyproject.toml")
+            
+            interface CheckError {
+              file: string
+              line?: number
+              message: string
+              isSessionError: boolean
+            }
+            
+            const allErrors: CheckError[] = []
+            let checksRun = 0
+            
+            // Helper to parse errors and categorize them
+            const parseAndCategorize = (output: string, checkName: string) => {
+              // Common patterns for file:line:message
+              const patterns = [
+                /^(.+?):(\d+):\d*:?\s*(.+)$/gm,  // file:line:col: message
+                /^(.+?)\((\d+),\d+\):\s*(.+)$/gm, // file(line,col): message (TypeScript)
+                /^\s*(.+?):(\d+)\s+(.+)$/gm,      // file:line message
+              ]
+              
+              for (const pattern of patterns) {
+                let match
+                while ((match = pattern.exec(output)) !== null) {
+                  const file = match[1].trim().replace(/\\/g, '/')
+                  const line = parseInt(match[2])
+                  const message = match[3].trim()
+                  
+                  // Check if this file was modified during session
+                  const isSessionError = modifiedFiles.some(mf => 
+                    file.endsWith(mf) || mf.endsWith(file) || file.includes(mf) || mf.includes(file)
+                  )
+                  
+                  allErrors.push({ file, line, message, isSessionError })
+                }
+              }
+            }
+            
+            // Run checks based on project type
+            if (existsSync(packageJson)) {
+              const pkg = JSON.parse(readFileSync(packageJson, "utf-8"))
+              
+              if (pkg.scripts?.lint) {
+                checksRun++
+                report += `## 🔍 Lint Check\n`
+                const lintResult = runCommand("npm run lint 2>&1", gitRoot)
+                if (lintResult.success) {
+                  report += `✅ Lint passed\n\n`
+                } else {
+                  report += `❌ Lint failed\n`
+                  parseAndCategorize(lintResult.error || lintResult.output, "lint")
+                }
+              }
+              
+              if (pkg.scripts?.build) {
+                checksRun++
+                report += `## 🔨 Build Check\n`
+                const buildResult = runCommand("npm run build 2>&1", gitRoot)
+                if (buildResult.success) {
+                  report += `✅ Build passed\n\n`
+                } else {
+                  report += `❌ Build failed\n`
+                  parseAndCategorize(buildResult.error || buildResult.output, "build")
+                }
+              }
+              
+              if (pkg.scripts?.typecheck || pkg.scripts?.["type-check"]) {
+                checksRun++
+                const cmd = pkg.scripts?.typecheck ? "npm run typecheck" : "npm run type-check"
+                report += `## 📝 TypeCheck\n`
+                const tcResult = runCommand(`${cmd} 2>&1`, gitRoot)
+                if (tcResult.success) {
+                  report += `✅ TypeCheck passed\n\n`
+                } else {
+                  report += `❌ TypeCheck failed\n`
+                  parseAndCategorize(tcResult.error || tcResult.output, "typecheck")
+                }
+              }
+            }
+            
+            if (existsSync(goMod)) {
+              checksRun++
+              report += `## 🔨 Go Build\n`
+              const goBuild = runCommand("go build ./... 2>&1", gitRoot)
+              if (goBuild.success) {
+                report += `✅ Go build passed\n\n`
+              } else {
+                parseAndCategorize(goBuild.error || goBuild.output, "go build")
+              }
+              
+              checksRun++
+              report += `## 🔍 Go Vet\n`
+              const goVet = runCommand("go vet ./... 2>&1", gitRoot)
+              if (goVet.success) {
+                report += `✅ Go vet passed\n\n`
+              } else {
+                parseAndCategorize(goVet.error || goVet.output, "go vet")
+              }
+            }
+            
+            if (existsSync(cargoToml)) {
+              checksRun++
+              report += `## 🔨 Cargo Check\n`
+              const cargoCheck = runCommand("cargo check 2>&1", gitRoot)
+              if (cargoCheck.success) {
+                report += `✅ Cargo check passed\n\n`
+              } else {
+                parseAndCategorize(cargoCheck.error || cargoCheck.output, "cargo")
+              }
+              
+              checksRun++
+              report += `## 🔍 Cargo Clippy\n`
+              const clippy = runCommand("cargo clippy 2>&1", gitRoot)
+              if (clippy.success) {
+                report += `✅ Clippy passed\n\n`
+              } else {
+                parseAndCategorize(clippy.error || clippy.output, "clippy")
+              }
+            }
+            
+            if (existsSync(pyProject)) {
+              checksRun++
+              report += `## 🔍 Python Lint (ruff/flake8)\n`
+              let pyLint = runCommand("ruff check . 2>&1", gitRoot)
+              if (!pyLint.success && pyLint.error?.includes("not found")) {
+                pyLint = runCommand("flake8 . 2>&1", gitRoot)
+              }
+              if (pyLint.success) {
+                report += `✅ Python lint passed\n\n`
+              } else {
+                parseAndCategorize(pyLint.error || pyLint.output, "python lint")
+              }
+              
+              checksRun++
+              report += `## 📝 Python Type Check (mypy)\n`
+              const mypy = runCommand("mypy . 2>&1", gitRoot)
+              if (mypy.success) {
+                report += `✅ Mypy passed\n\n`
+              } else {
+                parseAndCategorize(mypy.error || mypy.output, "mypy")
+              }
+            }
+            
+            if (checksRun === 0) {
+              report += `⚠️ No build/lint scripts detected in this project.\n`
+              report += `Supported: package.json (npm), go.mod, Cargo.toml, pyproject.toml\n`
+              logEvent("warn", "mad_final_check: no checks detected", { gitRoot })
+              return report
+            }
+            
+            // 4. Categorize and report errors
+            const sessionErrors = allErrors.filter(e => e.isSessionError)
+            const preExistingErrors = allErrors.filter(e => !e.isSessionError)
+            
+            report += `---\n\n## 📋 Error Summary\n\n`
+            
+            if (allErrors.length === 0) {
+              report += `🎉 **All checks passed!** No errors detected.\n`
+              logEvent("info", "mad_final_check: all checks passed", { checksRun })
+              return report
+            }
+            
+            if (sessionErrors.length > 0) {
+              report += `### ❌ Session Errors (${sessionErrors.length})\n`
+              report += `*These errors are in files modified during this session:*\n\n`
+              for (const err of sessionErrors.slice(0, 10)) {
+                report += `- \`${err.file}${err.line ? `:${err.line}` : ''}\`: ${err.message.substring(0, 100)}\n`
+              }
+              if (sessionErrors.length > 10) {
+                report += `- ... and ${sessionErrors.length - 10} more\n`
+              }
+              report += `\n`
+            }
+            
+            if (preExistingErrors.length > 0) {
+              report += `### ⚠️ Pre-existing Errors (${preExistingErrors.length})\n`
+              report += `*These errors are NOT caused by this session - they existed before:*\n\n`
+              for (const err of preExistingErrors.slice(0, 10)) {
+                report += `- \`${err.file}${err.line ? `:${err.line}` : ''}\`: ${err.message.substring(0, 100)}\n`
+              }
+              if (preExistingErrors.length > 10) {
+                report += `- ... and ${preExistingErrors.length - 10} more\n`
+              }
+              report += `\n`
+              report += `💡 **These pre-existing errors are not your fault!**\n`
+              report += `Would you like me to create a worktree to fix them? Just say "fix pre-existing errors".\n`
+            }
+            
+            // 5. Final verdict
+            report += `\n---\n\n`
+            if (sessionErrors.length > 0) {
+              report += `⚠️ **Action required:** Fix the ${sessionErrors.length} session error(s) before considering this session complete.\n`
+            } else if (preExistingErrors.length > 0) {
+              report += `✅ **Session successful!** Your changes introduced no new errors.\n`
+              report += `The ${preExistingErrors.length} pre-existing error(s) can be fixed separately if desired.\n`
+            }
+            
+            logEvent("info", "mad_final_check completed", { 
+              checksRun, 
+              sessionErrors: sessionErrors.length, 
+              preExistingErrors: preExistingErrors.length 
+            })
+            
+            return report
+          } catch (e: any) {
+            logEvent("error", "mad_final_check exception", { error: e.message, stack: e.stack })
+            return getUpdateNotification() + `❌ Error running final check: ${e.message}`
+          }
+        },
+      }),
     },
 
     // Event hooks
