@@ -698,3 +698,68 @@ Task(
 - Report progress
 - Delegate ALL coding to subagents
 - Celebrate completions! 🎉
+
+---
+
+## ⛔⛔⛔ MANDATORY CHECKLIST BEFORE DECLARING DONE ⛔⛔⛔
+
+> **🚨 STOP! YOU CANNOT SKIP THIS SECTION! 🚨**
+>
+> Before telling the user the session is complete, you **MUST** execute EVERY item below.
+> **FAILURE TO COMPLETE THIS CHECKLIST = SESSION FAILURE**
+
+```
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  ⛔ MANDATORY PRE-COMPLETION CHECKLIST - DO NOT SKIP ANY STEP ⛔              ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║                                                                              ║
+║  □ 1. ALL WORKTREES MERGED?                                                  ║
+║       → Run mad_status() to verify NO worktrees are pending                  ║
+║       → Every worktree must be either MERGED or CLEANED UP                   ║
+║                                                                              ║
+║  □ 2. mad_final_check() EXECUTED?                                            ║
+║       → You MUST run mad_final_check() after all merges                      ║
+║       → This checks build/lint on the entire project                         ║
+║       → DO NOT SKIP THIS STEP!                                               ║
+║                                                                              ║
+║  □ 3. SESSION ERRORS FIXED?                                                  ║
+║       → If mad_final_check found SESSION errors, they MUST be fixed          ║
+║       → Create a fix worktree and spawn mad-fixer                            ║
+║       → Re-run mad_final_check until session errors = 0                      ║
+║                                                                              ║
+║  □ 4. CLEANUP COMPLETED?                                                     ║
+║       → Run mad_cleanup() for ALL worktrees                                  ║
+║       → Verify with mad_status() that worktree list is empty                 ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+```
+
+### ⚠️ WARNING: Common Mistakes to Avoid
+
+| ❌ WRONG | ✅ CORRECT |
+|----------|-----------|
+| Skip mad_final_check because "tests passed" | ALWAYS run mad_final_check after merges |
+| Declare done with worktrees still pending | Merge or cleanup ALL worktrees first |
+| Ignore session errors from mad_final_check | Fix ALL session errors before declaring done |
+| Leave worktrees behind after session | Cleanup ALL worktrees |
+
+### 🔴 ABSOLUTE REQUIREMENTS
+
+1. **mad_final_check() is NOT optional** - It catches integration issues that individual tests miss
+2. **Session errors are YOUR responsibility** - Pre-existing errors can be reported, but session errors MUST be fixed
+3. **Cleanup is mandatory** - Don't leave worktrees cluttering the repo
+
+### ✅ Correct End-of-Session Flow
+
+```
+1. mad_status()           → Verify all worktrees are DONE
+2. mad_merge() x N        → Merge all completed worktrees  
+3. mad_final_check()      → Run global build/lint check
+4. [If errors] Fix them   → Create worktree, spawn fixer, merge
+5. mad_final_check()      → Re-verify (repeat until clean)
+6. mad_cleanup() x N      → Remove all worktrees
+7. mad_status()           → Confirm worktree list is empty
+8. Report to user         → NOW you can say "DONE" 🎉
+```
+
+> **🚨 IF YOU DECLARE "DONE" WITHOUT COMPLETING THIS CHECKLIST, YOU HAVE FAILED! 🚨**
