@@ -29,6 +29,33 @@ Git worktrees provide isolated working directories, each on its own branch. This
 
 ## Workflow Steps
 
+## CRITICAL: Parallel Execution is MANDATORY
+
+The entire purpose of MAD is to run tasks IN PARALLEL. 
+
+### ❌ WRONG - Sequential (defeats the purpose)
+```
+Message 1: mad_worktree_create(branch: "feat-a", ...)
+Message 2: mad_worktree_create(branch: "feat-b", ...)
+Message 3: Task(subagent_type: "mad-developer", ...) for feat-a
+Message 4: Task(subagent_type: "mad-developer", ...) for feat-b
+```
+
+### ✅ CORRECT - Parallel (the whole point!)
+```
+Single Message containing:
+  mad_worktree_create(branch: "feat-a", ...)
+  mad_worktree_create(branch: "feat-b", ...)
+  mad_worktree_create(branch: "feat-c", ...)
+
+Single Message containing:
+  Task(subagent_type: "mad-developer", ...) for feat-a
+  Task(subagent_type: "mad-developer", ...) for feat-b  
+  Task(subagent_type: "mad-developer", ...) for feat-c
+```
+
+If you're not parallelizing, you're not using MAD correctly!
+
 ### 1. Decomposition
 Analyze the request and identify parallelizable components:
 - Different modules/features
