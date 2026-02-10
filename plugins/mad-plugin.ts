@@ -21,6 +21,9 @@ let pendingUpdateMessage: string | null = null
 
 export const MADPlugin: Plugin = async ({ project, client, $, directory, worktree }) => {
   
+  // Use the directory provided by OpenCode, fallback to process.cwd() for backwards compatibility
+  const baseDirectory = directory || process.cwd()
+  
   /**
    * Helper to run shell commands with proper error handling (cross-platform)
    */
@@ -28,7 +31,7 @@ export const MADPlugin: Plugin = async ({ project, client, $, directory, worktre
     try {
       const output = execSync(cmd, { 
         encoding: "utf-8", 
-        cwd: cwd || process.cwd(),
+        cwd: cwd || baseDirectory,
         stdio: ["pipe", "pipe", "pipe"]
       })
       return { success: true, output: output.trim() }
@@ -43,9 +46,10 @@ export const MADPlugin: Plugin = async ({ project, client, $, directory, worktre
 
   /**
    * Helper to get git root with error handling
+   * @param basePath - Optional base path to start from (defaults to baseDirectory)
    */
-  const getGitRoot = (): string => {
-    const result = runCommand("git rev-parse --show-toplevel")
+  const getGitRoot = (basePath?: string): string => {
+    const result = runCommand("git rev-parse --show-toplevel", basePath || baseDirectory)
     if (!result.success) {
       throw new Error(`Not a git repository or git not found: ${result.error}`)
     }
@@ -54,18 +58,20 @@ export const MADPlugin: Plugin = async ({ project, client, $, directory, worktre
 
   /**
    * Helper to get current branch with fallback
+   * @param basePath - Optional base path to run git command from (defaults to baseDirectory)
    */
-  const getCurrentBranch = (): string => {
-    const result = runCommand("git symbolic-ref --short HEAD")
+  const getCurrentBranch = (basePath?: string): string => {
+    const result = runCommand("git symbolic-ref --short HEAD", basePath || baseDirectory)
     return result.success ? result.output : "main"
   }
 
   /**
    * Helper to log MAD events
+   * Uses baseDirectory to find the git root for log file location
    */
   const logEvent = (level: "info" | "warn" | "error" | "debug", message: string, context?: any) => {
     try {
-      const gitRoot = getGitRoot()
+      const gitRoot = getGitRoot(baseDirectory)
       const logFile = join(gitRoot, ".mad-logs.jsonl")
       const logEntry = JSON.stringify({
         timestamp: new Date().toISOString(),
