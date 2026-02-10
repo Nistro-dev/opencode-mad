@@ -112,6 +112,19 @@ mad_final_check()
 ```
 This distinguishes session errors from pre-existing issues.
 
+### 9. Push & CI Watch
+Push to remote and monitor CI:
+```
+mad_push_and_watch()
+```
+This will:
+- Push changes to the remote
+- Detect if GitHub Actions CI exists
+- Watch CI progress in real-time with `gh run watch`
+- Report success or failure with logs
+
+If CI fails, create a `fix-ci` worktree to fix the errors.
+
 ## Best Practices
 
 1. **Keep subtasks focused** - Each should be completable in one session
@@ -134,6 +147,7 @@ This distinguishes session errors from pre-existing issues.
 | `mad_blocked` | Mark task blocked |
 | `mad_read_task` | Read task description |
 | `mad_final_check` | Run global build/lint and categorize errors |
+| `mad_push_and_watch` | Push to remote and watch CI |
 
 ## Example
 

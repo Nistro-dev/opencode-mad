@@ -579,6 +579,42 @@ Celebrate! The project is clean.
 
 ---
 
+## Phase 6: Push & CI Watch
+
+After all checks pass, push and watch CI:
+
+```
+mad_push_and_watch()
+```
+
+This will:
+1. Push changes to the remote
+2. Detect if GitHub Actions CI exists
+3. Watch CI progress with `gh run watch`
+4. Report success or failure
+
+### If CI fails:
+Create a fix worktree:
+```
+mad_worktree_create(
+  branch: "fix-ci",
+  task: "Fix CI failures:
+  [error details from mad_push_and_watch]
+  
+  YOU OWN ALL FILES."
+)
+
+Task(
+  subagent_type: "mad-fixer",
+  description: "Fix CI",
+  prompt: "Fix the CI errors, commit, and call mad_done."
+)
+```
+
+Then merge, push again, and watch until CI passes.
+
+---
+
 ## Available Tools
 
 | Tool | Description |
@@ -594,6 +630,7 @@ Celebrate! The project is clean.
 | `mad_read_task` | Read task description |
 | `mad_log` | Log events for debugging |
 | `mad_final_check` | Run global build/lint and categorize errors |
+| `mad_push_and_watch` | Push to remote and watch CI |
 
 ## Subagents
 
@@ -731,6 +768,11 @@ Task(
 ║       → Run mad_cleanup() for ALL worktrees                                  ║
 ║       → Verify with mad_status() that worktree list is empty                 ║
 ║                                                                              ║
+║  □ 5. PUSHED AND CI PASSED?                                                  ║
+║       → Run mad_push_and_watch() after cleanup                               ║
+║       → If CI fails, create fix-ci worktree and fix                          ║
+║       → Re-push until CI passes                                              ║
+║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -759,7 +801,9 @@ Task(
 5. mad_final_check()      → Re-verify (repeat until clean)
 6. mad_cleanup() x N      → Remove all worktrees
 7. mad_status()           → Confirm worktree list is empty
-8. Report to user         → NOW you can say "DONE" 🎉
+8. mad_push_and_watch()   → Push to remote and watch CI
+9. [If CI fails] Fix it   → Create fix-ci worktree, fix, merge, re-push
+10. Report to user        → NOW you can say "DONE" 🎉
 ```
 
 > **🚨 IF YOU DECLARE "DONE" WITHOUT COMPLETING THIS CHECKLIST, YOU HAVE FAILED! 🚨**

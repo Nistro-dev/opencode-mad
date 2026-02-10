@@ -730,6 +730,126 @@ Latest version:  ${updateInfo.latest}`
       }),
 
       /**
+       * Push and watch CI
+       */
+      mad_push_and_watch: tool({
+        description: `Push changes to remote and watch CI if it exists.
+After all merges and final checks, this pushes to the remote and monitors GitHub Actions.
+Uses 'gh run watch' to follow CI progress in real-time.
+If CI fails, returns error details for the orchestrator to spawn a fixer.`,
+        args: {
+          createFixWorktree: tool.schema.boolean().optional().describe("If true and CI fails, automatically suggest creating a fix-ci worktree"),
+        },
+        async execute(args, context) {
+          try {
+            const gitRoot = getGitRoot()
+            let report = getUpdateNotification() + "# Push & CI Watch\n\n"
+            
+            // 1. Check if we have a remote
+            const remoteResult = runCommand("git remote get-url origin", gitRoot)
+            if (!remoteResult.success) {
+              return report + "⚠️ No remote 'origin' configured. Skipping push."
+            }
+            
+            // 2. Get current branch
+            const branch = getCurrentBranch()
+            report += `📍 Branch: \`${branch}\`\n\n`
+            
+            // 3. Check if upstream exists, if not set it
+            const upstreamResult = runCommand(`git rev-parse --abbrev-ref ${branch}@{upstream}`, gitRoot)
+            
+            // 4. Push
+            report += "## 🚀 Pushing to remote...\n"
+            const pushCmd = upstreamResult.success 
+              ? "git push"
+              : `git push -u origin ${branch}`
+            
+            const pushResult = runCommand(pushCmd, gitRoot)
+            if (!pushResult.success) {
+              return report + `❌ Push failed:\n\`\`\`\n${pushResult.error}\n\`\`\`\n\nFix the issue and try again.`
+            }
+            report += "✅ Push successful!\n\n"
+            
+            // 5. Check if gh CLI is available
+            const ghCheck = runCommand("gh --version", gitRoot)
+            if (!ghCheck.success) {
+              return report + "⚠️ GitHub CLI (gh) not installed. Cannot watch CI.\n\nInstall with: https://cli.github.com/"
+            }
+            
+            // 6. Check for running/pending workflow runs
+            report += "## 🔍 Checking for CI workflows...\n"
+            const runsResult = runCommand(
+              `gh run list --branch ${branch} --limit 1 --json databaseId,status,conclusion,name,event`,
+              gitRoot
+            )
+            
+            if (!runsResult.success) {
+              return report + "⚠️ Could not check CI status. You may not be authenticated with `gh auth login`."
+            }
+            
+            let runs: any[] = []
+            try {
+              runs = JSON.parse(runsResult.output)
+            } catch {
+              return report + "⚠️ No CI workflows found for this repository.\n\n✅ Push complete (no CI to watch)."
+            }
+            
+            if (runs.length === 0) {
+              return report + "ℹ️ No CI workflows found for this branch.\n\n✅ Push complete!"
+            }
+            
+            const latestRun = runs[0]
+            report += `Found workflow: **${latestRun.name}** (${latestRun.event})\n\n`
+            
+            // 7. If already completed, just report status
+            if (latestRun.status === "completed") {
+              if (latestRun.conclusion === "success") {
+                return report + `✅ CI already passed! (${latestRun.name})\n\n🎉 All done!`
+              } else {
+                report += `❌ CI failed with conclusion: ${latestRun.conclusion}\n\n`
+                report += "Use `gh run view --log-failed` to see error details.\n"
+                if (args.createFixWorktree) {
+                  report += "\n💡 **Suggestion:** Create a `fix-ci` worktree to fix the CI errors."
+                }
+                return report
+              }
+            }
+            
+            // 8. Watch the CI run in real-time
+            report += "## ⏳ Watching CI...\n"
+            report += `Running: \`gh run watch ${latestRun.databaseId}\`\n\n`
+            
+            // Use gh run watch (this blocks until complete)
+            const watchResult = runCommand(
+              `gh run watch ${latestRun.databaseId} --exit-status`,
+              gitRoot
+            )
+            
+            if (watchResult.success) {
+              return report + `✅ CI passed!\n\n\`\`\`\n${watchResult.output.slice(-500)}\n\`\`\`\n\n🎉 All done!`
+            } else {
+              report += `❌ CI failed!\n\n\`\`\`\n${(watchResult.error || watchResult.output).slice(-1000)}\n\`\`\`\n\n`
+              
+              // Get failed logs
+              const logsResult = runCommand(`gh run view ${latestRun.databaseId} --log-failed`, gitRoot)
+              if (logsResult.success && logsResult.output) {
+                report += `### Failed logs:\n\`\`\`\n${logsResult.output.slice(-2000)}\n\`\`\`\n\n`
+              }
+              
+              if (args.createFixWorktree) {
+                report += "💡 **Recommendation:** Create a `fix-ci` worktree to fix these errors."
+              }
+              
+              return report
+            }
+          } catch (e: any) {
+            logEvent("error", "mad_push_and_watch exception", { error: e.message })
+            return getUpdateNotification() + `❌ Error: ${e.message}`
+          }
+        }
+      }),
+
+      /**
        * Final check - run global build/lint and categorize errors
        */
       mad_final_check: tool({
