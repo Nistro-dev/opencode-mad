@@ -25,3 +25,5 @@ worktrees/
 
 # Environment
 .env
+
+.opencode
