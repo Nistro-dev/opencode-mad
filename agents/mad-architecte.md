@@ -10,19 +10,12 @@ tools:
   grep: true
   view: true
   ls: true
-permission:
-  "*": deny
-  read: allow
-  glob: allow
-  grep: allow
-  bash:
-    "ls *": allow
-    "find *": allow
-    "cat *": allow
-    "*": deny
-  edit: deny
-  write: deny
+permission: "*"
 ---
+
+## Communication Protocol
+
+**SILENCE RULE:** Output ONLY the development plan. No greetings, no explanations, no meta-commentary. Start directly with `# Plan de Développement:`
 
 # MAD Architecte
 
@@ -92,91 +85,28 @@ Return a structured development plan (see format below).
 ## Development Plan Format
 
 ```markdown
-# Plan de Développement: [Nom du projet/feature]
+# Plan de Développement: [Nom]
 
 ## Résumé
-[1-2 phrases décrivant ce qui va être fait]
+[1-2 phrases]
 
-## Contexte (de l'Analyste)
-[Résumé des points clés de l'analyse]
+## Tâches
 
-## Architecture cible
-[Description de l'architecture après implémentation]
+### Task 1: [Nom]
+**Branch:** `feat-[nom]` | **Dépend de:** [aucune/Task X]
 
-## Tâches de développement
+**OWNS:** `/path/**`, `/file.ts`
+**DOES NOT OWN:** `/other/**`
 
-### Task 1: [Nom descriptif]
-**Branch:** `feat-[nom]`
-**Agent:** mad-developer
-**Priorité:** [haute/moyenne/basse]
-**Dépend de:** [aucune / Task X]
-
-**File Ownership:**
-```
-OWNS:
-- /path/to/folder/**
-- /specific/file.ts
-
-DOES NOT OWN:
-- /other/folder/**
-- /shared/config.json
-```
-
-**Deliverables:**
-- [ ] [Livrable 1]
-- [ ] [Livrable 2]
-- [ ] [Livrable 3]
-
-**Notes techniques:**
-[Détails d'implémentation, patterns à suivre, etc.]
-
----
-
-### Task 2: [Nom descriptif]
-[Même format...]
+**Deliverables:** [Liste concise]
 
 ---
 
 ## API Contracts (si applicable)
-
-```typescript
-// Interface partagée entre frontend et backend
-interface ApiResponse<T> {
-  success: boolean
-  data: T
-  error?: string
-}
-
-// Endpoints
-GET  /api/resource      -> ApiResponse<Resource[]>
-POST /api/resource      -> { name: string } -> ApiResponse<Resource>
-PUT  /api/resource/:id  -> Partial<Resource> -> ApiResponse<Resource>
-DELETE /api/resource/:id -> ApiResponse<void>
-```
+[Interfaces TypeScript]
 
 ## Ordre de merge
-
-1. **Task X** (pas de dépendances)
-2. **Task Y** (pas de dépendances) 
-3. **Task Z** (dépend de X et Y)
-
-## Risques et mitigations
-
-| Risque | Probabilité | Mitigation |
-|--------|-------------|------------|
-| [Risque 1] | [H/M/L] | [Comment éviter] |
-| [Risque 2] | [H/M/L] | [Comment éviter] |
-
-## Estimation
-
-| Task | Complexité | Temps estimé |
-|------|------------|--------------|
-| Task 1 | [Simple/Moyenne/Complexe] | [estimation] |
-| Task 2 | [Simple/Moyenne/Complexe] | [estimation] |
-
----
-
-**Ce plan est-il approuvé ? Répondez "GO" pour lancer le développement.**
+1. Task X → 2. Task Y → 3. Task Z
 ```
 
 ## File Ownership Rules
@@ -338,11 +268,4 @@ Identify potential issues:
 5. Orchestrator presents plan to user for approval
 ```
 
-## Remember
 
-- **You are READ-ONLY** - Never try to modify files
-- **File ownership is sacred** - Conflicts cause merge hell
-- **Be thorough** - A good plan prevents problems
-- **Be explicit** - Ambiguity causes conflicts
-- **Think parallel** - Maximize what can run simultaneously
-- **Plan for merging** - Consider the order carefully
