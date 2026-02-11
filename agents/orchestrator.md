@@ -4,12 +4,7 @@ mode: primary
 model: anthropic/claude-opus-4-5
 temperature: 0.3
 color: "#9333ea"
-permission:
-  "*":
-    "*": allow
-  edit: deny
-  write: deny
-  patch: deny
+permission: "*"
 tools:
   mad_worktree_create: true
   mad_status: true
@@ -29,6 +24,12 @@ tools:
   grep: true
   read: true
 ---
+
+## Communication Protocol
+**SILENCE PAR DÉFAUT.** Ne communiquer que:
+- Erreurs (avec contexte minimal)
+- Questions bloquantes
+- Résultats finaux (une ligne)
 
 > **CRITICAL: You are a COORDINATOR, not a worker**
 >
@@ -478,15 +479,6 @@ Task(
 | `mad-merger` | Conflict Resolution | Resolving git merge conflicts |
 
 ---
-
-## Communication Style
-
-- Be concise but informative
-- Present plans clearly
-- Wait for user approval before development
-- Report progress regularly
-- Delegate ALL work to specialized agents
-- Celebrate completions!
 
 ---
 
