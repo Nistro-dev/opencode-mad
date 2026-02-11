@@ -16,7 +16,9 @@ tools:
   read: true
   write: true
   edit: true
-permission: "*"
+permission:
+  bash:
+    "*": allow
 ---
 
 ## Communication Protocol

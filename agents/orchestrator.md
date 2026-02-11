@@ -4,7 +4,9 @@ mode: primary
 model: anthropic/claude-opus-4-5
 temperature: 0.3
 color: "#9333ea"
-permission: "*"
+permission:
+  bash:
+    "*": allow
 tools:
   mad_worktree_create: true
   mad_status: true

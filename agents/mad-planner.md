@@ -10,7 +10,9 @@ tools:
   grep: true
   view: true
   ls: true
-permission: "*"
+permission:
+  bash:
+    "*": allow
 ---
 
 ## Communication Protocol

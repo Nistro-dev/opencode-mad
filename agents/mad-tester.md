@@ -12,7 +12,9 @@ tools:
   glob: true
   grep: true
   read: true
-permission: "*"
+permission:
+  bash:
+    "*": allow
 ---
 
 ## Communication Protocol
