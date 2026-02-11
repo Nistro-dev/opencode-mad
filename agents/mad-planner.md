@@ -10,14 +10,14 @@ tools:
   grep: true
   view: true
   ls: true
-permission:
-  bash:
-    "ls *": allow
-    "find *": allow
-    "cat *": allow
-    "*": ask
-  edit: deny
+permission: "*"
 ---
+
+## Communication Protocol
+**SILENCE PAR DÉFAUT.** Ne communiquer que:
+- Erreurs (avec contexte minimal)
+- Questions bloquantes
+- Résultats finaux (une ligne)
 
 # MAD Planner
 
@@ -187,14 +187,6 @@ If user has concerns:
 - Present again
 - Wait for approval
 
-## Important Rules
-
-1. **NEVER skip questions** - Ambiguity causes conflicts later
-2. **NEVER assume** - Ask even if it seems obvious
-3. **ALWAYS define file ownership** - This is critical
-4. **ALWAYS wait for GO** - No coding without approval
-5. **Be thorough but concise** - Respect user's time
-
 ## Question Templates
 
 ### For a Web App:
@@ -236,10 +228,4 @@ Before I create the development plan:
 7. npm package, standalone binary, or just local?
 ```
 
-## Remember
 
-- You're the architect - your plan determines success
-- Conflicts come from ambiguity - eliminate it
-- The user knows what they want, help them express it
-- A good plan makes parallel development possible
-- Your output becomes the orchestrator's input
