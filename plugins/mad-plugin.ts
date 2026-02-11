@@ -12,6 +12,37 @@ import { execSync } from "child_process"
  * running in parallel via OpenCode's Task tool.
  */
 
+// Types for agent permissions (constraint enforcement)
+interface AgentPermissions {
+  type: 'orchestrator' | 'analyste' | 'architecte' | 'developer' | 'tester' | 'reviewer' | 'fixer' | 'merger' | 'security'
+  canEdit: boolean
+  canWrite: boolean
+  canPatch: boolean
+  allowedPaths: string[] | null  // null = all, [] = none, [...] = specific list
+  deniedPaths: string[]          // Explicitly denied paths
+  worktree: string | null        // Worktree path if applicable
+}
+
+// Global map to store permissions by sessionID
+const agentPermissions = new Map<string, AgentPermissions>()
+
+// Simple glob matching (for patterns like /backend/**)
+function matchGlob(path: string, pattern: string): boolean {
+  // Normalize paths
+  const normalizedPath = path.replace(/\\/g, '/')
+  const normalizedPattern = pattern.replace(/\\/g, '/')
+  
+  // Convert glob to regex
+  const regexPattern = normalizedPattern
+    .replace(/\*\*/g, '{{DOUBLESTAR}}')
+    .replace(/\*/g, '[^/]*')
+    .replace(/{{DOUBLESTAR}}/g, '.*')
+    .replace(/\//g, '\\/')
+  
+  const regex = new RegExp(`^${regexPattern}$`)
+  return regex.test(normalizedPath)
+}
+
 // Current version of opencode-mad
 const CURRENT_VERSION = "0.4.1"
 
@@ -1117,6 +1148,69 @@ Use this at the end of the MAD workflow to ensure code quality.`,
           }
         },
       }),
+
+      /**
+       * Register agent permissions for constraint enforcement
+       */
+      mad_register_agent: tool({
+        description: `Register an agent's permissions for constraint enforcement.
+Call this when spawning a subagent to define what it can and cannot do.
+The plugin will then BLOCK any unauthorized actions.`,
+        args: {
+          sessionID: tool.schema.string().describe("The session ID of the agent"),
+          agentType: tool.schema.enum([
+            'orchestrator', 'analyste', 'architecte', 'developer', 
+            'tester', 'reviewer', 'fixer', 'merger', 'security'
+          ]).describe("Type of agent"),
+          worktree: tool.schema.string().optional().describe("Worktree path if applicable"),
+          allowedPaths: tool.schema.array(tool.schema.string()).optional().describe("Paths the agent can edit (glob patterns)"),
+          deniedPaths: tool.schema.array(tool.schema.string()).optional().describe("Paths explicitly denied"),
+        },
+        async execute(args, context) {
+          const { sessionID, agentType, worktree, allowedPaths, deniedPaths } = args
+          
+          // Define default permissions based on agent type
+          const readOnlyAgents = ['orchestrator', 'analyste', 'architecte', 'tester', 'reviewer', 'security']
+          const canEdit = !readOnlyAgents.includes(agentType)
+          
+          const permissions: AgentPermissions = {
+            type: agentType,
+            canEdit,
+            canWrite: canEdit,
+            canPatch: canEdit,
+            allowedPaths: allowedPaths || null,
+            deniedPaths: deniedPaths || [],
+            worktree: worktree || null,
+          }
+          
+          agentPermissions.set(sessionID, permissions)
+          
+          logEvent("info", `Registered agent permissions`, { sessionID, agentType, canEdit, worktree })
+          
+          return getUpdateNotification() + `✅ Agent registered: ${agentType} (canEdit: ${canEdit}, worktree: ${worktree || 'none'})`
+        }
+      }),
+
+      /**
+       * Unregister agent permissions when it completes
+       */
+      mad_unregister_agent: tool({
+        description: `Unregister an agent's permissions when it completes.`,
+        args: {
+          sessionID: tool.schema.string().describe("The session ID to unregister"),
+        },
+        async execute(args) {
+          const existed = agentPermissions.has(args.sessionID)
+          agentPermissions.delete(args.sessionID)
+          
+          if (existed) {
+            logEvent("info", `Unregistered agent`, { sessionID: args.sessionID })
+            return `✅ Agent unregistered: ${args.sessionID}`
+          } else {
+            return `⚠️ Agent was not registered: ${args.sessionID}`
+          }
+        }
+      }),
     },
 
     // Event hooks
@@ -1130,6 +1224,77 @@ Use this at the end of the MAD workflow to ensure code quality.`,
             message: "Session idle",
           },
         })
+      }
+    },
+
+    // Hook to enforce agent constraints before tool execution
+    hook: {
+      "tool.execute.before": async (input: any, output: any) => {
+        const perms = agentPermissions.get(input.sessionID)
+        
+        // If no permissions registered, let it pass (backwards compatibility)
+        if (!perms) return
+        
+        const toolName = input.tool
+        const args = output.args || {}
+        
+        // 1. Block edit/write/patch for read-only agents
+        if (['edit', 'write', 'patch', 'multiedit'].includes(toolName)) {
+          if (!perms.canEdit) {
+            logEvent("warn", `BLOCKED: ${perms.type} tried to use ${toolName}`, { sessionID: input.sessionID })
+            throw new Error(`🚫 BLOCKED: Agent type '${perms.type}' cannot use '${toolName}' tool. This agent is READ-ONLY.`)
+          }
+          
+          // 2. Check path if allowedPaths is defined
+          const targetPath = args.filePath || args.file_path || args.path
+          if (targetPath) {
+            // Check denied paths
+            if (perms.deniedPaths.some((p: string) => targetPath.includes(p) || matchGlob(targetPath, p))) {
+              logEvent("warn", `BLOCKED: ${perms.type} tried to edit denied path`, { sessionID: input.sessionID, path: targetPath })
+              throw new Error(`🚫 BLOCKED: Cannot edit '${targetPath}' - this path is explicitly denied for this agent.`)
+            }
+            
+            // Check allowed paths (if defined)
+            if (perms.allowedPaths && perms.allowedPaths.length > 0) {
+              const isAllowed = perms.allowedPaths.some((p: string) => targetPath.includes(p) || matchGlob(targetPath, p))
+              if (!isAllowed) {
+                logEvent("warn", `BLOCKED: ${perms.type} tried to edit outside allowed paths`, { sessionID: input.sessionID, path: targetPath, allowedPaths: perms.allowedPaths })
+                throw new Error(`🚫 BLOCKED: Cannot edit '${targetPath}' - outside allowed paths: ${perms.allowedPaths.join(', ')}`)
+              }
+            }
+          }
+        }
+        
+        // 3. For bash, check if trying to modify files
+        if (toolName === 'bash' && perms && !perms.canEdit) {
+          const cmd = args.command || ''
+          const dangerousPatterns = [
+            /\becho\s+.*>/,      // echo > file
+            /\bcat\s+.*>/,       // cat > file
+            /\brm\s+/,           // rm
+            /\bmv\s+/,           // mv
+            /\bcp\s+/,           // cp (can create files)
+            /\bmkdir\s+/,        // mkdir
+            /\btouch\s+/,        // touch
+            /\bnpm\s+install/,   // npm install (modifies node_modules)
+            /\bgit\s+commit/,    // git commit
+            /\bgit\s+push/,      // git push
+          ]
+          
+          for (const pattern of dangerousPatterns) {
+            if (pattern.test(cmd)) {
+              logEvent("warn", `BLOCKED: ${perms.type} tried dangerous bash command`, { sessionID: input.sessionID, command: cmd })
+              throw new Error(`🚫 BLOCKED: Agent type '${perms.type}' cannot run '${cmd}' - this command modifies files and this agent is READ-ONLY.`)
+            }
+          }
+        }
+        
+        // 4. Force CWD in worktree for agents with worktree
+        if (toolName === 'bash' && perms?.worktree && args.command) {
+          // Prefix command with cd to worktree
+          const worktreePath = perms.worktree.replace(/\\/g, '/')
+          output.args.command = `cd "${worktreePath}" && ${args.command}`
+        }
       }
     },
   }
