@@ -12,146 +12,63 @@ metadata:
 
 MAD (Multi-Agent Dev) enables parallel software development by decomposing tasks into independent subtasks, each running in isolated git worktrees with dedicated specialized agents.
 
-## Architecture Overview
+## Architecture
 
 ```
-                         USER REQUEST
-                              |
-                              v
-                    +-------------------+
-                    |   ORCHESTRATOR    |  <- Coordinator (never codes)
-                    +-------------------+
-                              |
-          +-------------------+-------------------+
-          |                                       |
-          v                                       v
-   +-------------+                         +-------------+
-   |  ANALYSTE   |  -- analysis report --> | ARCHITECTE  |
-   +-------------+                         +-------------+
-                                                  |
-                                                  v
-                                           Development Plan
-                                                  |
-                              +-------------------+-------------------+
-                              |                   |                   |
-                              v                   v                   v
-                       +-----------+       +-----------+       +-----------+
-                       | DEVELOPER |       | DEVELOPER |       | DEVELOPER |
-                       | worktree1 |       | worktree2 |       | worktree3 |
-                       +-----------+       +-----------+       +-----------+
-                              |                   |                   |
-                              +-------------------+-------------------+
-                                                  |
-                    +-----------------------------+-----------------------------+
-                    |                             |                             |
-                    v                             v                             v
-             +----------+                  +----------+                  +----------+
-             |  TESTER  |                  | REVIEWER |                  | SECURITY |
-             +----------+                  +----------+                  +----------+
-                    |                             |                             |
-                    +-----------------------------+-----------------------------+
-                                                  |
-                                                  v
-                                           +----------+
-                                           |  MERGER  |  (if conflicts)
-                                           +----------+
-                                                  |
-                                                  v
-                                           +----------+
-                                           |  FIXER   |  (if issues)
-                                           +----------+
+USER REQUEST → ORCHESTRATOR → ANALYSTE → ARCHITECTE → Plan
+                    ↓
+    ┌───────────────┼───────────────┐
+    ↓               ↓               ↓
+DEVELOPER 1    DEVELOPER 2    DEVELOPER 3
+(worktree)     (worktree)     (worktree)
+    ↓               ↓               ↓
+    └───────────────┼───────────────┘
+                    ↓
+         TESTER / REVIEWER / SECURITY
+                    ↓
+              MERGER / FIXER (if needed)
+                    ↓
+              FINAL CHECK → PUSH
 ```
 
-## Core Concepts
+## Specialized Agents
 
-### Worktrees
-Git worktrees provide isolated working directories, each on its own branch. This allows multiple tasks to be developed simultaneously without conflicts.
+| Agent | Role |
+|-------|------|
+| **mad-analyste** | Understands codebase, finds patterns |
+| **mad-architecte** | Creates task breakdown, file ownership |
+| **mad-developer** | Writes code in isolated worktrees |
+| **mad-tester** | Runs tests, verifies functionality |
+| **mad-reviewer** | Checks quality, best practices |
+| **mad-security** | Audits for vulnerabilities |
+| **mad-fixer** | Fixes errors, test failures |
+| **mad-merger** | Resolves git merge conflicts |
 
-### Specialized Agents
+## Signal Files
 
-| Agent | Role | Responsibility |
-|-------|------|----------------|
-| **mad-analyste** | Analysis | Understands codebase, finds relevant code, identifies patterns |
-| **mad-architecte** | Planning | Creates task breakdown, file ownership, API contracts |
-| **mad-developer** | Implementation | Writes code in isolated worktrees |
-| **mad-tester** | Testing | Runs tests, verifies functionality |
-| **mad-reviewer** | Code Review | Checks quality, patterns, best practices |
-| **mad-security** | Security | Audits for vulnerabilities, injection risks |
-| **mad-fixer** | Bug Fixing | Fixes errors, test failures, review issues |
-| **mad-merger** | Conflicts | Resolves git merge conflicts |
-
-### Signal Files
-- `.agent-task`: Task description (created by orchestrator)
-- `.agent-done`: Completion marker with summary
-- `.agent-blocked`: Block marker with reason
-- `.agent-error`: Error details from failed tests
+- `.agent-task`: Task description
+- `.agent-done`: Completion marker
+- `.agent-blocked`: Block marker
+- `.agent-error`: Error details
 
 ## Workflow Phases
 
-### Phase 1: Analysis
-The Orchestrator spawns an Analyste to understand the codebase:
-- Project structure and technologies
-- Relevant existing code
-- Dependencies and patterns
-- Potential impact areas
+1. **Analysis**: Analyste understands codebase
+2. **Planning**: Architecte creates plan with file ownership
+3. **Approval**: User validates plan ("GO")
+4. **Development**: Parallel developer spawning
+5. **QA**: Testers, Reviewers, Security in parallel
+6. **Resolution**: Fixer/Merger if issues
+7. **Finalization**: Merge, final check, push, cleanup
 
-### Phase 2: Planning
-The Orchestrator spawns an Architecte to create the plan:
-- Task breakdown with clear boundaries
-- File ownership (CRITICAL: no overlaps!)
-- API contracts between components
-- Merge order recommendation
+## CRITICAL: Parallel Execution
 
-### Phase 3: User Approval
-The Orchestrator presents the plan and waits for "GO".
+**The entire purpose of MAD is to run tasks IN PARALLEL.**
 
-### Phase 4: Development
-The Orchestrator:
-1. Creates worktrees with `mad_worktree_create`
-2. Registers permissions with `mad_register_agent`
-3. Spawns Developers in parallel
-
-### Phase 5: Quality Assurance
-The Orchestrator spawns in parallel:
-- Testers (run tests)
-- Reviewers (check code quality)
-- Security (audit vulnerabilities)
-
-### Phase 6: Resolution
-If issues found:
-- Spawn Fixer for bugs/review issues
-- Spawn Merger for conflicts
-
-### Phase 7: Finalization
-- Merge all branches
-- Run `mad_final_check`
-- Push with `mad_push_and_watch`
-- Cleanup worktrees
-
-## CRITICAL: Parallel Execution is MANDATORY
-
-The entire purpose of MAD is to run tasks IN PARALLEL.
-
-### WRONG - Sequential (defeats the purpose)
-```
-Message 1: mad_worktree_create(branch: "feat-a", ...)
-Message 2: mad_worktree_create(branch: "feat-b", ...)
-Message 3: Task(subagent_type: "mad-developer", ...) for feat-a
-Message 4: Task(subagent_type: "mad-developer", ...) for feat-b
-```
-
-### CORRECT - Parallel (the whole point!)
-```
-Single Message containing:
-  mad_worktree_create(branch: "feat-a", ...)
-  mad_worktree_create(branch: "feat-b", ...)
-  mad_worktree_create(branch: "feat-c", ...)
-
-Single Message containing:
-  Task(subagent_type: "mad-developer", ...) for feat-a
-  Task(subagent_type: "mad-developer", ...) for feat-b
-  Task(subagent_type: "mad-developer", ...) for feat-c
-```
+All independent operations MUST be in a single message:
+- Create all worktrees together
+- Spawn all developers together
+- Run all QA agents together
 
 If you're not parallelizing, you're not using MAD correctly!
 
@@ -159,19 +76,30 @@ If you're not parallelizing, you're not using MAD correctly!
 
 Each task MUST have exclusive ownership. Two agents must NEVER modify the same file.
 
-**Good:**
 ```
 Task 1: OWNS /backend/**
 Task 2: OWNS /frontend/**
 Task 3: OWNS /package.json, /README.md
 ```
 
-**Bad:**
-```
-Task 1: "Create login page"
-Task 2: "Create signup page"
-# BAD! Both might create /frontend/index.html
-```
+## Silence Protocol
+
+**CRITICAL: Subagents MUST NOT output verbose commentary.**
+
+### Rules for Subagents:
+1. **No status updates** - Don't say "I'm now going to..."
+2. **No explanations** - Don't explain what you're doing
+3. **No summaries** - Don't summarize at the end
+4. **Actions only** - Just execute tools and complete the task
+5. **Signal via tools** - Use `mad_done` or `mad_blocked` to communicate
+
+### Why?
+- Reduces token usage dramatically
+- Speeds up execution
+- Orchestrator monitors via `mad_status`, not agent output
+
+### Orchestrator Exception:
+The orchestrator MAY output status to keep the user informed, but should remain concise.
 
 ## Available Tools
 
@@ -181,74 +109,20 @@ Task 2: "Create signup page"
 | `mad_status` | Dashboard of all worktrees |
 | `mad_visualize` | ASCII art visualization |
 | `mad_test` | Run tests on worktree |
-| `mad_merge` | Merge completed branch |
+| `mad_merge` | Merge completed branch (uses --no-ff) |
 | `mad_cleanup` | Remove worktree |
 | `mad_done` | Mark task complete |
 | `mad_blocked` | Mark task blocked |
 | `mad_read_task` | Read task description |
 | `mad_register_agent` | Register agent permissions |
-| `mad_final_check` | Run global build/lint and categorize errors |
-| `mad_push_and_watch` | Push to remote and watch CI |
-
-> **Note:** `mad_merge` automatically uses `--no-ff` to preserve history. If you ever need to merge manually, always use `git merge --no-ff`.
-
-## Example Session
-
-Request: "Add user authentication with login, signup, and password reset"
-
-### 1. Analysis Phase
-```
-Task(subagent_type: "mad-analyste", ...)
--> Returns: "Project uses Express + React, auth should go in /backend/auth/** and /frontend/auth/**"
-```
-
-### 2. Planning Phase
-```
-Task(subagent_type: "mad-architecte", ...)
--> Returns plan with 3 tasks:
-   - feat-auth-backend: OWNS /backend/auth/**
-   - feat-auth-frontend: OWNS /frontend/auth/**
-   - feat-auth-config: OWNS /config/auth.js
-```
-
-### 3. Development Phase
-```
-mad_worktree_create(branch: "feat-auth-backend", ...)
-mad_worktree_create(branch: "feat-auth-frontend", ...)
-mad_worktree_create(branch: "feat-auth-config", ...)
-
-mad_register_agent(sessionID: "...", agentType: "developer", allowedPaths: ["/backend/auth/**"], ...)
-Task(subagent_type: "mad-developer", ...) for backend
-Task(subagent_type: "mad-developer", ...) for frontend
-Task(subagent_type: "mad-developer", ...) for config
-```
-
-### 4. Quality Phase
-```
-Task(subagent_type: "mad-tester", ...) for each worktree
-Task(subagent_type: "mad-reviewer", ...) for each worktree
-Task(subagent_type: "mad-security", ...) for each worktree
-```
-
-### 5. Finalization
-```
-mad_merge(worktree: "feat-auth-config")
-mad_merge(worktree: "feat-auth-backend")
-mad_merge(worktree: "feat-auth-frontend")
-mad_final_check()
-mad_push_and_watch()
-mad_cleanup(worktree: "feat-auth-backend")
-mad_cleanup(worktree: "feat-auth-frontend")
-mad_cleanup(worktree: "feat-auth-config")
-```
+| `mad_final_check` | Run global build/lint |
+| `mad_push_and_watch` | Push and watch CI |
 
 ## Best Practices
 
-1. **Delegate everything** - Orchestrator coordinates, never codes
-2. **Keep subtasks focused** - Each should be completable in one session
-3. **Name branches clearly** - `feat/`, `fix/`, `refactor/` prefixes
-4. **Test before merge** - Always run quality checks first
-5. **Handle blocks promptly** - Don't let blocked tasks linger
-6. **Merge sequentially** - Avoid merge conflict cascades
-7. **Always use `--no-ff` for merges** - Preserves feature history and enables easy reverts
-8. **Register permissions** - Use `mad_register_agent` before spawning developers
+1. **Delegate everything** - Orchestrator never codes
+2. **Keep subtasks focused** - Completable in one session
+3. **Name branches clearly** - `feat/`, `fix/`, `refactor/`
+4. **Test before merge** - Always run QA first
+5. **Merge sequentially** - Avoid conflict cascades
+6. **Register permissions** - Before spawning developers
