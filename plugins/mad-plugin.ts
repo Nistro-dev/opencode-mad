@@ -44,7 +44,7 @@ function matchGlob(path: string, pattern: string): boolean {
 }
 
 // Current version of opencode-mad
-const CURRENT_VERSION = "0.4.1"
+const CURRENT_VERSION = "1.0.0"
 
 // Update notification state (shown only once per session)
 let updateNotificationShown = false
