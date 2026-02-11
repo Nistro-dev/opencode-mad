@@ -16,7 +16,9 @@ tools:
   write: false
   edit: false
   patch: false
-permission: "*"
+permission:
+  bash:
+    "*": allow
 ---
 
 ## Communication Protocol
