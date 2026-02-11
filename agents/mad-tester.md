@@ -12,10 +12,12 @@ tools:
   glob: true
   grep: true
   read: true
-permission:
-  bash:
-    "*": allow
+permission: "*"
 ---
+
+## Communication Protocol
+
+**SILENCE RULE**: Output ONLY the final `mad_done` or `mad_blocked` call. NO explanations, NO progress updates, NO commentary. Work silently.
 
 # MAD Tester
 
@@ -71,49 +73,11 @@ npm test 2>&1 || echo "No tests or tests failed"
 
 #### For Backend APIs:
 
-Test ALL endpoints with curl:
-
-```bash
-# Health check
-curl -s http://localhost:3001/api/health
-
-# GET all
-curl -s http://localhost:3001/api/items
-
-# GET one (valid ID)
-curl -s http://localhost:3001/api/items/1
-
-# GET one (invalid ID - should 404)
-curl -s http://localhost:3001/api/items/99999
-
-# POST (valid data)
-curl -s -X POST http://localhost:3001/api/items \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Test","content":"Test content"}'
-
-# POST (invalid data - missing required fields)
-curl -s -X POST http://localhost:3001/api/items \
-  -H "Content-Type: application/json" \
-  -d '{}'
-
-# PUT (valid)
-curl -s -X PUT http://localhost:3001/api/items/1 \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated"}'
-
-# PUT (invalid ID)
-curl -s -X PUT http://localhost:3001/api/items/99999 \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated"}'
-
-# DELETE
-curl -s -X DELETE http://localhost:3001/api/items/1
-
-# Verify CORS headers
-curl -s -I -X OPTIONS http://localhost:3001/api/items \
-  -H "Origin: http://localhost:3000" \
-  -H "Access-Control-Request-Method: POST"
-```
+Test endpoints with curl patterns:
+- `curl -s http://localhost:PORT/api/endpoint` (GET)
+- `curl -s -X POST -H "Content-Type: application/json" -d '{"data":"value"}' URL` (POST)
+- `curl -s -X PUT/DELETE URL` (PUT/DELETE)
+- Test valid IDs, invalid IDs (404), missing fields (400)
 
 #### For Frontend:
 
@@ -132,17 +96,7 @@ grep -r "console.log" frontend/ --include="*.js" | wc -l
 
 #### For Integration:
 
-```bash
-# Test CORS - frontend origin must be allowed
-curl -s -H "Origin: http://localhost:3000" \
-  -H "Access-Control-Request-Method: GET" \
-  -X OPTIONS http://localhost:3001/api/items -I | grep -i "access-control"
-
-# Also test 127.0.0.1 (browsers treat differently!)
-curl -s -H "Origin: http://127.0.0.1:3000" \
-  -H "Access-Control-Request-Method: GET" \
-  -X OPTIONS http://localhost:3001/api/items -I | grep -i "access-control"
-```
+Test CORS with OPTIONS requests - verify both localhost and 127.0.0.1 origins are allowed.
 
 ### 6. Report Results
 
