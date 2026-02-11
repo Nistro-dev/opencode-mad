@@ -1192,6 +1192,54 @@ The plugin will then BLOCK any unauthorized actions.`,
       }),
 
       /**
+       * Analyze codebase - for Analyst agent
+       */
+      mad_analyze: tool({
+        description: `Trigger a codebase analysis. Returns a structured report.
+Use mode 'full' for complete project scan, 'targeted' for task-specific analysis.`,
+        args: {
+          mode: tool.schema.enum(['full', 'targeted']).describe("Analysis mode"),
+          focus: tool.schema.string().optional().describe("For targeted mode: what to focus on"),
+          paths: tool.schema.array(tool.schema.string()).optional().describe("Specific paths to analyze"),
+        },
+        async execute(args, context) {
+          const { mode, focus, paths } = args
+          const gitRoot = getGitRoot()
+          
+          let report = `# Codebase Analysis Report\n\n`
+          report += `**Mode:** ${mode}\n`
+          report += `**Date:** ${new Date().toISOString()}\n\n`
+          
+          // Collecter les informations de base
+          const structure = runCommand('find . -type f -name "*.ts" -o -name "*.js" -o -name "*.json" | grep -v node_modules | head -50', gitRoot)
+          const packageJsonPath = join(gitRoot, 'package.json')
+          const packageJson = existsSync(packageJsonPath) 
+            ? JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+            : null
+          
+          report += `## Project Structure\n\`\`\`\n${structure.output}\n\`\`\`\n\n`
+          
+          if (packageJson) {
+            report += `## Dependencies\n`
+            report += `- **Name:** ${packageJson.name}\n`
+            report += `- **Version:** ${packageJson.version}\n`
+            report += `- **Dependencies:** ${Object.keys(packageJson.dependencies || {}).length}\n`
+            report += `- **DevDependencies:** ${Object.keys(packageJson.devDependencies || {}).length}\n\n`
+          }
+          
+          if (mode === 'targeted' && focus) {
+            report += `## Targeted Analysis: ${focus}\n`
+            // Chercher les fichiers pertinents
+            const relevantFiles = runCommand(`grep -rl "${focus}" --include="*.ts" --include="*.js" . | grep -v node_modules | head -20`, gitRoot)
+            report += `### Relevant Files\n\`\`\`\n${relevantFiles.output || 'No files found'}\n\`\`\`\n`
+          }
+          
+          logEvent("info", "Codebase analysis completed", { mode, focus })
+          return getUpdateNotification() + report
+        }
+      }),
+
+      /**
        * Unregister agent permissions when it completes
        */
       mad_unregister_agent: tool({
@@ -1209,6 +1257,195 @@ The plugin will then BLOCK any unauthorized actions.`,
           } else {
             return `⚠️ Agent was not registered: ${args.sessionID}`
           }
+        }
+      }),
+
+      /**
+       * Create development plan - for Architect agent
+       */
+      mad_create_plan: tool({
+        description: `Store a development plan created by the Architect agent.
+The plan will be available for the orchestrator to present to the user.`,
+        args: {
+          planName: tool.schema.string().describe("Name/identifier for the plan"),
+          plan: tool.schema.string().describe("The full development plan in markdown"),
+          tasks: tool.schema.array(tool.schema.object({
+            name: tool.schema.string(),
+            branch: tool.schema.string(),
+            ownership: tool.schema.array(tool.schema.string()),
+            denied: tool.schema.array(tool.schema.string()).optional(),
+            dependencies: tool.schema.array(tool.schema.string()).optional(),
+          })).describe("Structured task list"),
+        },
+        async execute(args, context) {
+          const { planName, plan, tasks } = args
+          
+          // Stocker le plan en mémoire (pourrait être persisté plus tard)
+          const planData = {
+            name: planName,
+            createdAt: new Date().toISOString(),
+            plan,
+            tasks,
+          }
+          
+          // Log pour debugging
+          logEvent("info", "Development plan created", { planName, taskCount: tasks.length })
+          
+          return getUpdateNotification() + `✅ Plan '${planName}' created with ${tasks.length} tasks.\n\n${plan}`
+        }
+      }),
+
+      /**
+       * Submit code review - for Reviewer agent
+       */
+      mad_review: tool({
+        description: `Submit a code review report for a worktree.
+Called by the Reviewer agent after analyzing the code.`,
+        args: {
+          worktree: tool.schema.string().describe("Worktree that was reviewed"),
+          verdict: tool.schema.enum(['approved', 'changes_requested', 'rejected']).describe("Review verdict"),
+          summary: tool.schema.string().describe("Brief summary of the review"),
+          issues: tool.schema.array(tool.schema.object({
+            severity: tool.schema.enum(['critical', 'major', 'minor']),
+            file: tool.schema.string(),
+            line: tool.schema.number().optional(),
+            message: tool.schema.string(),
+            suggestion: tool.schema.string().optional(),
+          })).optional().describe("List of issues found"),
+          positives: tool.schema.array(tool.schema.string()).optional().describe("Positive aspects of the code"),
+        },
+        async execute(args, context) {
+          const { worktree, verdict, summary, issues, positives } = args
+          const gitRoot = getGitRoot()
+          const worktreePath = join(gitRoot, "worktrees", worktree)
+          
+          if (!existsSync(worktreePath)) {
+            return getUpdateNotification() + `❌ Worktree not found: ${worktreePath}`
+          }
+          
+          // Créer le rapport de review
+          let report = `# Code Review: ${worktree}\n\n`
+          report += `**Verdict:** ${verdict === 'approved' ? '✅ APPROVED' : verdict === 'changes_requested' ? '⚠️ CHANGES REQUESTED' : '❌ REJECTED'}\n\n`
+          report += `## Summary\n${summary}\n\n`
+          
+          if (positives && positives.length > 0) {
+            report += `## Positives 👍\n`
+            positives.forEach(p => report += `- ${p}\n`)
+            report += '\n'
+          }
+          
+          if (issues && issues.length > 0) {
+            report += `## Issues Found\n`
+            const critical = issues.filter(i => i.severity === 'critical')
+            const major = issues.filter(i => i.severity === 'major')
+            const minor = issues.filter(i => i.severity === 'minor')
+            
+            if (critical.length > 0) {
+              report += `### 🚨 Critical (${critical.length})\n`
+              critical.forEach(i => {
+                report += `- **${i.file}${i.line ? `:${i.line}` : ''}** - ${i.message}\n`
+                if (i.suggestion) report += `  → Suggestion: ${i.suggestion}\n`
+              })
+            }
+            if (major.length > 0) {
+              report += `### ⚠️ Major (${major.length})\n`
+              major.forEach(i => {
+                report += `- **${i.file}${i.line ? `:${i.line}` : ''}** - ${i.message}\n`
+                if (i.suggestion) report += `  → Suggestion: ${i.suggestion}\n`
+              })
+            }
+            if (minor.length > 0) {
+              report += `### 💡 Minor (${minor.length})\n`
+              minor.forEach(i => {
+                report += `- **${i.file}${i.line ? `:${i.line}` : ''}** - ${i.message}\n`
+              })
+            }
+          }
+          
+          // Sauvegarder le rapport dans le worktree
+          writeFileSync(join(worktreePath, '.agent-review'), report)
+          
+          logEvent("info", "Code review submitted", { worktree, verdict, issueCount: issues?.length || 0 })
+          
+          return getUpdateNotification() + report
+        }
+      }),
+
+      /**
+       * Security scan - for Security agent
+       */
+      mad_security_scan: tool({
+        description: `Submit a security scan report for a worktree or the main project.
+Called by the Security agent after scanning for vulnerabilities.`,
+        args: {
+          target: tool.schema.string().describe("Worktree name or 'main' for main project"),
+          riskLevel: tool.schema.enum(['low', 'medium', 'high', 'critical']).describe("Overall risk level"),
+          summary: tool.schema.string().describe("Brief summary of findings"),
+          vulnerabilities: tool.schema.array(tool.schema.object({
+            id: tool.schema.string(),
+            severity: tool.schema.enum(['low', 'medium', 'high', 'critical']),
+            type: tool.schema.string(),
+            file: tool.schema.string().optional(),
+            line: tool.schema.number().optional(),
+            description: tool.schema.string(),
+            remediation: tool.schema.string(),
+          })).optional().describe("List of vulnerabilities found"),
+          dependencyIssues: tool.schema.array(tool.schema.object({
+            package: tool.schema.string(),
+            severity: tool.schema.string(),
+            cve: tool.schema.string().optional(),
+            fix: tool.schema.string(),
+          })).optional().describe("Vulnerable dependencies"),
+        },
+        async execute(args, context) {
+          const { target, riskLevel, summary, vulnerabilities, dependencyIssues } = args
+          const gitRoot = getGitRoot()
+          
+          let report = `# Security Scan Report: ${target}\n\n`
+          report += `**Risk Level:** ${riskLevel === 'critical' ? '🚨 CRITICAL' : riskLevel === 'high' ? '🔴 HIGH' : riskLevel === 'medium' ? '🟡 MEDIUM' : '🟢 LOW'}\n`
+          report += `**Date:** ${new Date().toISOString()}\n\n`
+          report += `## Summary\n${summary}\n\n`
+          
+          if (vulnerabilities && vulnerabilities.length > 0) {
+            report += `## Vulnerabilities (${vulnerabilities.length})\n\n`
+            vulnerabilities.forEach(v => {
+              const icon = v.severity === 'critical' ? '🚨' : v.severity === 'high' ? '🔴' : v.severity === 'medium' ? '🟡' : '🟢'
+              report += `### ${icon} [${v.id}] ${v.type}\n`
+              report += `**Severity:** ${v.severity.toUpperCase()}\n`
+              if (v.file) report += `**Location:** ${v.file}${v.line ? `:${v.line}` : ''}\n`
+              report += `**Description:** ${v.description}\n`
+              report += `**Remediation:** ${v.remediation}\n\n`
+            })
+          }
+          
+          if (dependencyIssues && dependencyIssues.length > 0) {
+            report += `## Vulnerable Dependencies (${dependencyIssues.length})\n\n`
+            report += `| Package | Severity | CVE | Fix |\n`
+            report += `|---------|----------|-----|-----|\n`
+            dependencyIssues.forEach(d => {
+              report += `| ${d.package} | ${d.severity} | ${d.cve || 'N/A'} | ${d.fix} |\n`
+            })
+            report += '\n'
+          }
+          
+          // Verdict
+          const canMerge = riskLevel === 'low' || (riskLevel === 'medium' && (!vulnerabilities || vulnerabilities.filter(v => v.severity === 'critical' || v.severity === 'high').length === 0))
+          report += `## Verdict\n`
+          report += canMerge 
+            ? `✅ **PASS** - No critical security issues blocking merge.\n`
+            : `❌ **FAIL** - Critical security issues must be resolved before merge.\n`
+          
+          // Sauvegarder si c'est un worktree
+          if (target !== 'main') {
+            const worktreePath = join(gitRoot, "worktrees", target)
+            if (existsSync(worktreePath)) {
+              writeFileSync(join(worktreePath, '.agent-security'), report)
+            }
+          }
+          
+          logEvent("info", "Security scan completed", { target, riskLevel, vulnCount: vulnerabilities?.length || 0 })
+          
+          return getUpdateNotification() + report
         }
       }),
     },
