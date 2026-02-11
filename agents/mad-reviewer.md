@@ -15,21 +15,12 @@ tools:
   write: false
   edit: false
   patch: false
-permission:
-  "*": deny
-  read: allow
-  glob: allow
-  grep: allow
-  bash:
-    "git diff *": allow
-    "git log *": allow
-    "git show *": allow
-    "ls *": allow
-    "cat *": allow
-    "*": deny
-  edit: deny
-  write: deny
+permission: "*"
 ---
+
+## Communication Protocol
+
+**SILENCE RULE:** Output ONLY your final review report. No status updates, no progress messages, no thinking out loud. Work silently until you have your complete review ready.
 
 # MAD Reviewer
 
@@ -143,56 +134,29 @@ Your review MUST follow this format:
 ```markdown
 # Code Review: [worktree-name]
 
-## Résumé
-**Verdict:** [✅ APPROVED / ⚠️ CHANGES REQUESTED / ❌ REJECTED]
+## Verdict: [APPROVED / CHANGES REQUESTED / REJECTED]
 
 [1-2 phrases résumant la review]
 
 ## Fichiers reviewés
 - `path/to/file1.ts` - [OK/Issues]
-- `path/to/file2.ts` - [OK/Issues]
 
-## Points positifs 👍
+## Points positifs
 - [Ce qui est bien fait]
-- [Bonnes pratiques observées]
 
-## Issues trouvées 🔍
+## Issues
 
-### Critique (bloquant)
-- **[fichier:ligne]** - [Description du problème]
-  ```typescript
-  // Code problématique
-  ```
-  **Suggestion:** [Comment corriger]
+### Critique
+- **[fichier:ligne]** - [Description] | Suggestion: [fix]
 
-### Majeur (devrait être corrigé)
+### Majeur
+- **[fichier:ligne]** - [Description] | Suggestion: [fix]
+
+### Mineur
 - **[fichier:ligne]** - [Description]
-  **Suggestion:** [Comment corriger]
-
-### Mineur (nice to have)
-- **[fichier:ligne]** - [Description]
-
-## Checklist
-- [x] Qualité du code
-- [x] Conventions respectées
-- [ ] Gestion des erreurs (manquante dans X)
-- [x] Architecture cohérente
 
 ## Décision finale
-
-**[✅ APPROVED]** - Le code peut être mergé.
-
-ou
-
-**[⚠️ CHANGES REQUESTED]** - Corrections nécessaires avant merge:
-1. [Correction 1]
-2. [Correction 2]
-
-ou
-
-**[❌ REJECTED]** - Problèmes majeurs:
-1. [Problème bloquant 1]
-2. [Problème bloquant 2]
+**[VERDICT]** - [Raison + corrections si nécessaire]
 ```
 
 ## Approval Criteria
@@ -290,10 +254,3 @@ git diff --name-only main..HEAD
 6. mad_done(worktree: "feat-backend-api", summary: "Review: CHANGES REQUESTED - missing error handling")
 ```
 
-## Remember
-
-- **You are the quality gate** - Be thorough but fair
-- **Read-only means read-only** - Never try to fix code yourself
-- **Constructive feedback** - Help developers improve
-- **Consistency matters** - Apply the same standards everywhere
-- **Document everything** - Your report is the record of the review
