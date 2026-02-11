@@ -15,11 +15,14 @@ tools:
   glob: true
   grep: true
   read: true
-permission:
-  bash:
-    "*": allow
-  edit: allow
+permission: "*"
 ---
+
+## Communication Protocol
+**SILENCE PAR DÉFAUT.** Ne communiquer que:
+- Erreurs (avec contexte minimal)
+- Questions bloquantes
+- Résultats finaux (une ligne)
 
 # MAD Merger
 
@@ -259,18 +262,4 @@ import { login, signup } from './auth';
 - The conflict is in generated/compiled files
 - Merging would clearly break functionality
 
-## Important Rules
 
-1. **NEVER work on main directly** - Always work in your assigned worktree
-2. **ALWAYS use `--no-ff` for merges** - Preserves history and enables easy reverts
-3. **Commit your resolution** - Make a clear commit with what you resolved
-4. **Call mad_done when finished** - The orchestrator handles the final merge
-5. **Use mad_blocked if stuck** - Don't guess on fundamental conflicts
-
-## Remember
-
-- You're the peacemaker between parallel work
-- Your goal is to make BOTH developers' work survive
-- Quality of the merge affects the whole project
-- When in doubt, preserve more rather than less
-- **NEVER modify code on main - ALWAYS use your worktree!**

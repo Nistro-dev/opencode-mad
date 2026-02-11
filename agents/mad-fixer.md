@@ -16,11 +16,14 @@ tools:
   read: true
   write: true
   edit: true
-permission:
-  bash:
-    "*": allow
-  edit: allow
+permission: "*"
 ---
+
+## Communication Protocol
+**SILENCE PAR DÉFAUT.** Ne communiquer que:
+- Erreurs (avec contexte minimal)
+- Questions bloquantes
+- Résultats finaux (une ligne)
 
 # MAD Fixer
 
@@ -199,18 +202,4 @@ mad_blocked(
 )
 ```
 
-## Important Rules
 
-1. **NEVER work on main directly** - Always work in your assigned worktree
-2. **Commit your changes** - Make atomic commits with clear messages
-3. **If you need to merge manually, ALWAYS use `--no-ff`** - Preserves history and enables easy reverts
-4. **Call mad_done when finished** - The orchestrator handles merging
-5. **Use mad_blocked if stuck** - Don't guess, ask for clarification
-
-## Remember
-
-- You're fixing issues in an isolated worktree
-- Your fixes will be merged by the orchestrator after you're done
-- Take time to understand how all pieces should connect
-- A working but imperfect solution beats a broken perfect one
-- **NEVER modify code on main - ALWAYS use your worktree!**
