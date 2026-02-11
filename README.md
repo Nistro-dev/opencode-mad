@@ -2,14 +2,43 @@
 
 **Multi-Agent Dev (MAD)** - Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **9 specialized agents** and **hard constraints** enforced at the code level.
+
+## 🎉 What's New in v1.0.0
+
+### 🤖 4 New Specialized Agents
+- **mad-analyste** - Analyzes the codebase (full or targeted analysis), READ-ONLY
+- **mad-architecte** - Creates detailed development plans with file ownership, READ-ONLY
+- **mad-reviewer** - Reviews code quality before merge, READ-ONLY
+- **mad-security** - Scans for security vulnerabilities, READ-ONLY
+
+### 🔒 Hard Constraints (Code-Level Enforcement)
+The plugin now **blocks unauthorized actions** at the code level:
+- READ-ONLY agents cannot use `edit`, `write`, or `patch` tools
+- Developers are constrained to their assigned file ownership
+- Dangerous bash commands are blocked for read-only agents
+
+### 🔄 Refactored Orchestrator
+The orchestrator now **delegates** analysis and planning to specialized agents:
+- Uses `mad-analyste` for codebase understanding
+- Uses `mad-architecte` for development planning
+- Focuses on coordination and monitoring
+
+### 🛠️ New Tools
+- `mad_register_agent` - Register agent with role and permissions
+- `mad_unregister_agent` - Unregister agent when done
+- `mad_analyze` - Trigger codebase analysis
+- `mad_create_plan` - Create development plan
+- `mad_review` - Request code review
+- `mad_security_scan` - Run security scan
 
 ## Features
 
-- **Smart Planning** - Orchestrator asks clarifying questions before coding
+- **Smart Planning** - Orchestrator delegates to Analyste and Architecte for thorough planning
 - **File Ownership** - Each agent has exclusive files, preventing merge conflicts
+- **Hard Constraints** - Plugin enforces permissions at the code level
 - **Parallel Execution** - Multiple developers work simultaneously in git worktrees
-- **Automated Testing** - Tester agent validates code before merge
+- **Quality Gates** - Tester, Reviewer, and Security agents validate before merge
 - **Conflict Resolution** - Dedicated merger agent handles git conflicts
 - **Integration Fixes** - Fixer agent ensures everything works together
 
@@ -57,8 +86,12 @@ your-project/
 ├── .opencode/
 │   ├── agents/
 │   │   ├── orchestrator.md      # Main coordinator
+│   │   ├── mad-analyste.md      # Codebase analysis (READ-ONLY)
+│   │   ├── mad-architecte.md    # Development planning (READ-ONLY)
 │   │   ├── mad-developer.md     # Implements features
 │   │   ├── mad-tester.md        # Tests before merge
+│   │   ├── mad-reviewer.md      # Code review (READ-ONLY)
+│   │   ├── mad-security.md      # Security scanning (READ-ONLY)
 │   │   ├── mad-merger.md        # Resolves conflicts
 │   │   └── mad-fixer.md         # Fixes integration
 │   ├── commands/
@@ -75,18 +108,20 @@ Once installed, just talk to the orchestrator naturally:
 ```
 You: Create a Task Timer app with Express backend and React frontend
 
-Orchestrator: Before I create the development plan, I need to clarify:
-1. Database: SQLite, PostgreSQL, or in-memory?
-2. Authentication needed?
-3. Dark mode or light mode?
-...
+Orchestrator: I'll analyze the codebase first...
+[Spawns mad-analyste for codebase analysis]
 
-You: SQLite, no auth, dark mode
+Analyste: Analysis complete. Here's the structure...
 
-Orchestrator: Here's the development plan:
-[Shows plan with file ownership]
+Orchestrator: Now creating the development plan...
+[Spawns mad-architecte for planning]
 
-Ready to proceed? Reply "GO"
+Architecte: Here's the development plan with file ownership:
+- Developer 1: /backend/** (Express API)
+- Developer 2: /frontend/** (React UI)
+- Developer 3: /shared/** (Types & utils)
+
+Orchestrator: Ready to proceed? Reply "GO"
 
 You: GO
 
@@ -124,28 +159,39 @@ Orchestrator: I'll spawn a fixer to resolve this.
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  ORCHESTRATOR (primary agent)                               │
-│  - Asks clarifying questions                                │
-│  - Creates plan with file ownership                         │
-│  - Waits for "GO"                                           │
+│  - Coordinates the entire workflow                          │
+│  - Delegates analysis and planning                          │
+│  - Monitors progress and handles issues                     │
 └─────────────────────────────────────────────────────────────┘
-                            │ "GO"
-                            ▼
+                            │
+            ┌───────────────┴───────────────┐
+            ▼                               ▼
+┌───────────────────────┐     ┌───────────────────────┐
+│  ANALYSTE (READ-ONLY) │     │  ARCHITECTE (READ-ONLY)│
+│  - Analyzes codebase  │────▶│  - Creates dev plan    │
+│  - Maps dependencies  │     │  - Assigns ownership   │
+│  - Identifies patterns│     │  - Defines interfaces  │
+└───────────────────────┘     └───────────────────────┘
+                                          │
+                                          ▼ "GO"
 ┌─────────────────────────────────────────────────────────────┐
 │  DEVELOPERS (parallel in git worktrees)                     │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
 │  │ Backend  │  │ Frontend │  │  Config  │                  │
 │  │ /backend │  │ /frontend│  │ /root    │                  │
 │  └──────────┘  └──────────┘  └──────────┘                  │
-│  Each owns exclusive files - no conflicts!                  │
+│  Each owns exclusive files - ENFORCED BY PLUGIN!            │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  TESTERS (parallel)                                         │
-│  - Test APIs with curl                                      │
-│  - Check frontend for errors                                │
-│  - Verify integration                                       │
-│  - Fix simple bugs or block if major issues                 │
+│  QUALITY GATES (parallel)                                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
+│  │ TESTER   │  │ REVIEWER │  │ SECURITY │                  │
+│  │ Run tests│  │ Code     │  │ Vuln     │                  │
+│  │ & verify │  │ quality  │  │ scanning │                  │
+│  └──────────┘  └──────────┘  └──────────┘                  │
+│  All READ-ONLY - cannot modify code!                        │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -163,22 +209,86 @@ Orchestrator: I'll spawn a fixer to resolve this.
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
-                        DONE! 
+                        DONE! 🎉
 ```
+
+## 🔒 Hard Constraints
+
+MAD v1.0.0 introduces **hard constraints** enforced at the plugin level. This means agents **cannot bypass** their permissions, even if they try.
+
+### How It Works
+
+When an agent registers with the plugin, it declares its role:
+
+```typescript
+// Agent registers with the plugin
+mad_register_agent({
+  agentId: "analyste-abc123",
+  role: "analyste",
+  permissions: {
+    canWrite: false,      // READ-ONLY
+    canExecute: false,    // No bash commands
+    filePatterns: ["**/*"] // Can read everything
+  }
+})
+```
+
+The plugin then **intercepts all tool calls** and blocks unauthorized actions:
+
+```
+❌ BLOCKED: Agent 'analyste-abc123' attempted to use 'edit' tool
+   Reason: Agent role 'analyste' does not have write permissions
+```
+
+### Permission Matrix
+
+| Agent | Read | Write | Execute | File Scope |
+|-------|------|-------|---------|------------|
+| orchestrator | ✅ | ✅ | ✅ | `**/*` |
+| mad-analyste | ✅ | ❌ | ❌ | `**/*` |
+| mad-architecte | ✅ | ❌ | ❌ | `**/*` |
+| mad-developer | ✅ | ✅ | ✅ | Assigned files only |
+| mad-tester | ✅ | ✅ | ✅ | Test files + worktree |
+| mad-reviewer | ✅ | ❌ | ❌ | `**/*` |
+| mad-security | ✅ | ❌ | ❌ | `**/*` |
+| mad-merger | ✅ | ✅ | ✅ | Conflict files |
+| mad-fixer | ✅ | ✅ | ✅ | Integration files |
+
+### Developer File Ownership
+
+Developers are constrained to their assigned files:
+
+```
+Task: "Implement backend API"
+YOU OWN: /backend/**
+
+✅ ALLOWED: edit /backend/server.js
+✅ ALLOWED: write /backend/routes/api.js
+❌ BLOCKED: edit /frontend/App.tsx (not in ownership)
+❌ BLOCKED: write /package.json (not in ownership)
+```
+
+This prevents merge conflicts and ensures clean parallel development.
 
 ## Agents
 
-| Agent | Mode | Description |
-|-------|------|-------------|
-| `orchestrator` | primary | Coordinates workflow, asks questions, creates plans. **Never codes directly.** |
-| `mad-developer` | subagent | Implements tasks in isolated worktrees |
-| `mad-tester` | subagent | Tests code before merge |
-| `mad-merger` | subagent | Resolves git merge conflicts |
-| `mad-fixer` | subagent | Fixes integration issues |
+| Agent | Mode | Permissions | Description |
+|-------|------|-------------|-------------|
+| `orchestrator` | primary | Full | Coordinates workflow, delegates to specialists. **Never codes directly.** |
+| `mad-analyste` | subagent | READ-ONLY | Analyzes codebase structure, dependencies, and patterns |
+| `mad-architecte` | subagent | READ-ONLY | Creates development plans with file ownership |
+| `mad-developer` | subagent | Scoped Write | Implements tasks in isolated worktrees (constrained to owned files) |
+| `mad-tester` | subagent | Test Write | Tests code before merge, can fix simple issues |
+| `mad-reviewer` | subagent | READ-ONLY | Reviews code quality, suggests improvements |
+| `mad-security` | subagent | READ-ONLY | Scans for security vulnerabilities |
+| `mad-merger` | subagent | Conflict Write | Resolves git merge conflicts |
+| `mad-fixer` | subagent | Integration Write | Fixes cross-component integration issues |
 
 ## Custom Tools
 
 The plugin provides these tools:
+
+### Core Tools
 
 | Tool | Description |
 |------|-------------|
@@ -193,6 +303,19 @@ The plugin provides these tools:
 | `mad_read_task` | Read task description |
 | `mad_log` | Log orchestration events |
 | `mad_check_update` | Check for plugin updates |
+| `mad_push_and_watch` | Push and monitor CI |
+| `mad_final_check` | Run final build/lint checks |
+
+### New in v1.0.0
+
+| Tool | Description |
+|------|-------------|
+| `mad_register_agent` | Register agent with role and permissions |
+| `mad_unregister_agent` | Unregister agent when done |
+| `mad_analyze` | Trigger codebase analysis (full or targeted) |
+| `mad_create_plan` | Create development plan with file ownership |
+| `mad_review` | Request code review for a worktree |
+| `mad_security_scan` | Run security vulnerability scan |
 
 ## Updates
 
@@ -219,7 +342,7 @@ npx opencode-mad version
 The orchestrator uses these defaults:
 - Model: `anthropic/claude-opus-4-5`
 - Never pushes automatically (only commits)
-- Always asks questions before planning
+- Always delegates analysis and planning to specialists
 
 To change the model, edit `.opencode/agents/orchestrator.md`:
 
