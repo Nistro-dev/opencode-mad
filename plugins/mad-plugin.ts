@@ -916,11 +916,11 @@ Called by the Reviewer agent after analyzing the code.`,
        */
       mad_pentest_check_tools: tool({
         description: `Check if pentest tools are installed on the system.
-Verifies availability of: nuclei, httpx, sqlmap, nmap, curl, ffuf.
+Verifies availability of: nuclei, httpx, katana, subfinder, sqlmap, nmap, curl, ffuf.
 Returns which tools are available and what scan capabilities are possible.`,
         args: {},
         async execute(args, context) {
-          const tools = ['nuclei', 'httpx', 'sqlmap', 'nmap', 'curl', 'ffuf']
+          const tools = ['nuclei', 'httpx', 'katana', 'subfinder', 'sqlmap', 'nmap', 'curl', 'ffuf']
           const available: string[] = []
           const missing: string[] = []
           
