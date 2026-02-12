@@ -2,15 +2,16 @@
 
 **Multi-Agent Dev (MAD)** - Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **9 specialized agents** and **hard constraints** enforced at the code level.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **10 specialized agents** and **hard constraints** enforced at the code level.
 
 ## 🎉 What's New in v1.0.0
 
-### 🤖 4 New Specialized Agents
+### 🤖 5 New Specialized Agents
 - **mad-analyste** - Analyzes the codebase (full or targeted analysis), READ-ONLY
 - **mad-architecte** - Creates detailed development plans with file ownership, READ-ONLY
 - **mad-reviewer** - Reviews code quality before merge, READ-ONLY
 - **mad-security** - Scans for security vulnerabilities, READ-ONLY
+- **mad-pentester** - Web penetration testing via URL, READ-ONLY
 
 ### 🔒 Hard Constraints (Code-Level Enforcement)
 The plugin now **blocks unauthorized actions** at the code level:
@@ -251,6 +252,7 @@ The plugin then **intercepts all tool calls** and blocks unauthorized actions:
 | mad-tester | ✅ | ✅ | ✅ | Test files + worktree |
 | mad-reviewer | ✅ | ❌ | ❌ | `**/*` |
 | mad-security | ✅ | ❌ | ❌ | `**/*` |
+| mad-pentester | ✅ | ❌ | ✅ | `**/*` (bash for pentest tools only) |
 | mad-merger | ✅ | ✅ | ✅ | Conflict files |
 | mad-fixer | ✅ | ✅ | ✅ | Integration files |
 
@@ -283,6 +285,7 @@ This prevents merge conflicts and ensures clean parallel development.
 | `mad-security` | subagent | READ-ONLY | Scans for security vulnerabilities |
 | `mad-merger` | subagent | Conflict Write | Resolves git merge conflicts |
 | `mad-fixer` | subagent | Integration Write | Fixes cross-component integration issues |
+| `mad-pentester` | subagent | READ-ONLY | Web penetration testing via URL (3 scan modes) |
 
 ## Custom Tools
 
@@ -316,6 +319,8 @@ The plugin provides these tools:
 | `mad_create_plan` | Create development plan with file ownership |
 | `mad_review` | Request code review for a worktree |
 | `mad_security_scan` | Run security vulnerability scan |
+| `mad_pentest_check_tools` | Check if pentest tools are installed (nmap, nikto, etc.) |
+| `mad_pentest_scan` | Register pentest scan results for a target URL |
 
 ## Updates
 
@@ -331,11 +336,78 @@ To check for updates:
 npx opencode-mad version
 ```
 
+## Web Penetration Testing
+
+MAD includes a **pentester agent** for dynamic security testing of web applications.
+
+### Prerequisites
+
+Install the required tools:
+
+```bash
+# Debian/Ubuntu
+sudo apt install nmap nikto sqlmap
+
+# macOS
+brew install nmap nikto sqlmap
+
+# Verify installation
+npx opencode-mad pentest-check
+```
+
+### Scan Modes
+
+| Mode | Description | Tools Used |
+|------|-------------|------------|
+| `basic` | Headers, SSL/TLS, known vulnerabilities | nmap, nikto |
+| `deep` | Crawling, fuzzing, endpoint discovery | nikto, dirb, gobuster |
+| `exploit` | Active SQLi, XSS, CSRF testing | sqlmap, nikto |
+
+### Usage Examples
+
+```
+You: Run a basic security scan on https://example.com
+
+Orchestrator: I'll spawn the pentester agent...
+[Spawns mad-pentester]
+
+Pentester: Starting basic scan on https://example.com
+- Checking SSL/TLS configuration...
+- Scanning for open ports...
+- Testing security headers...
+
+Results:
+⚠️  Missing X-Frame-Options header
+⚠️  TLS 1.0 still enabled
+✅ No known CVEs detected
+```
+
+For deeper analysis:
+
+```
+You: Run a deep scan on https://staging.myapp.com
+
+Pentester: Starting deep scan...
+- Crawling site structure...
+- Fuzzing endpoints...
+- Testing authentication flows...
+```
+
+### ⚠️ Legal Disclaimer
+
+**IMPORTANT**: Only run penetration tests on systems you own or have explicit written permission to test. Unauthorized security testing is illegal in most jurisdictions.
+
+The pentester agent will:
+- Ask for confirmation before running scans
+- Log all scan activities
+- Never run exploit mode without explicit user consent
+
 ## Requirements
 
 - [OpenCode](https://opencode.ai) 1.0+
 - Git (for worktrees)
 - Node.js 18+
+- **For pentesting**: nmap, nikto, sqlmap (optional)
 
 ## Configuration
 
