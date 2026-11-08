@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "test": "bun test",
+    "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
