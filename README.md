@@ -116,7 +116,13 @@ your-project/
 │   │   └── fixer.md          # Fixes integration
 │   ├── commands/
 │   ├── plugins/
-│   │   └── main.ts
+│   │   ├── main.ts          # package entry (thin barrel, no logic)
+│   │   ├── plugin.ts        # Plugin.define + runtime wiring
+│   │   ├── hooks.ts         # createPluginHooks (tools + hooks)
+│   │   ├── types.ts         # shared types
+│   │   ├── constants.ts     # package name, version, fallback model
+│   │   ├── lib/             # helpers, context, registry, guard
+│   │   └── tools/           # tool domains (worktree, quality, report, ci, agents, security)
 │   └── skills/
 └── ... your code
 ```
