@@ -4,9 +4,9 @@ Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
 Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **11 specialized agents** and **hard constraints** enforced at the code level.
 
-## 🎉 What's New in v1.0.0
+## What's New in v1.0.0
 
-### 🤖 5 New Specialized Agents
+### 5 New Specialized Agents
 
 - **analyst** - Analyzes the codebase (full or targeted analysis), READ-ONLY
 - **architect** - Creates detailed development plans with file ownership, READ-ONLY
@@ -14,7 +14,7 @@ Decompose complex tasks into parallelizable subtasks, each running in isolated g
 - **security** - Scans for security vulnerabilities, READ-ONLY
 - **pentester** - Web penetration testing via URL, READ-ONLY
 
-### 🔒 Hard Constraints (Code-Level Enforcement)
+### Hard Constraints (Code-Level Enforcement)
 
 The plugin now **blocks unauthorized actions** at the code level:
 
@@ -22,7 +22,7 @@ The plugin now **blocks unauthorized actions** at the code level:
 - Developers are constrained to their assigned file ownership
 - Dangerous bash commands are blocked for read-only agents
 
-### 🔄 Refactored Orchestrator
+### Refactored Orchestrator
 
 The orchestrator now **delegates** analysis and planning to specialized agents:
 
@@ -30,7 +30,7 @@ The orchestrator now **delegates** analysis and planning to specialized agents:
 - Uses `architect` for development planning
 - Focuses on coordination and monitoring
 
-### 🛠️ New Tools
+### New Tools
 
 - `register_agent` - Register an agent with its type and permissions
 - `unregister_agent` - Unregister an agent when it finishes
@@ -220,10 +220,10 @@ Orchestrator: I'll spawn a fixer to resolve this.
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
-                        DONE! 🎉
+                        DONE!
 ```
 
-## 🔒 Hard Constraints
+## Hard Constraints
 
 MAD v1.0.0 introduces **hard constraints** enforced at the plugin level. This means agents **cannot bypass** their permissions, even if they try.
 
@@ -252,26 +252,26 @@ register_agent({
 The plugin then **intercepts all tool calls** and blocks unauthorized actions:
 
 ```
-🚫 analyst is read-only
-🚫 Outside allowed paths: App.tsx
-🚫 Path denied: package.json
+BLOCKED analyst is read-only
+BLOCKED Outside allowed paths: App.tsx
+BLOCKED Path denied: package.json
 ```
 
 ### Permission Matrix
 
 | Agent        | Read | Write | Execute                | File Scope                           |
 | ------------ | ---- | ----- | ---------------------- | ------------------------------------ |
-| orchestrator | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| analyst      | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| architect    | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| planner      | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| developer    | ✅   | ✅    | ✅                     | Assigned files only                  |
-| tester       | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| reviewer     | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| security     | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
-| pentester    | ✅   | ❌    | ✅ (pentest tools)     | `**/*`                               |
-| merger       | ✅   | ✅    | ✅                     | Conflict files                       |
-| fixer        | ✅   | ✅    | ✅                     | Integration files                    |
+| orchestrator | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| analyst      | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| architect    | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| planner      | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| developer    | Yes  | Yes  | Yes                    | Assigned files only                  |
+| tester       | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| reviewer     | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| security     | Yes  | No   | Yes (safe commands)    | `**/*`                               |
+| pentester    | Yes  | No   | Yes (pentest tools)    | `**/*`                               |
+| merger       | Yes  | Yes  | Yes                    | Conflict files                       |
+| fixer        | Yes  | Yes  | Yes                    | Integration files                    |
 
 > "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`) are blocked for read-only agents.
 
@@ -283,10 +283,10 @@ Developers are constrained to their assigned files:
 Task: "Implement backend API"
 YOU OWN: /backend/**
 
-✅ ALLOWED: edit /backend/server.js
-✅ ALLOWED: write /backend/routes/api.js
-❌ BLOCKED: edit /frontend/App.tsx (not in ownership)
-❌ BLOCKED: write /package.json (not in ownership)
+ALLOWED: edit /backend/server.js
+ALLOWED: write /backend/routes/api.js
+BLOCKED: edit /frontend/App.tsx (not in ownership)
+BLOCKED: write /package.json (not in ownership)
 ```
 
 This prevents merge conflicts and ensures clean parallel development.
@@ -404,9 +404,9 @@ Pentester: Starting basic scan on https://example.com
 - Testing security headers...
 
 Results:
-⚠️  Missing X-Frame-Options header
-⚠️  TLS 1.0 still enabled
-✅ No known CVEs detected
+- Missing X-Frame-Options header
+- TLS 1.0 still enabled
+- No known CVEs detected
 ```
 
 For deeper analysis:
@@ -420,7 +420,7 @@ Pentester: Starting deep scan...
 - Testing authentication flows...
 ```
 
-### ⚠️ Legal Disclaimer
+### Legal Disclaimer
 
 **IMPORTANT**: Only run penetration tests on systems you own or have explicit written permission to test. Unauthorized security testing is illegal in most jurisdictions.
 
@@ -442,7 +442,7 @@ The pentester agent will:
 The orchestrator uses these defaults:
 
 - Model: `anthropic/claude-opus-4-5`
-- Never pushes automatically (only commits)
+- Commits are made by developer, fixer, and merger agents; the orchestrator pushes only through `push_and_watch`, after merges and final checks
 - Always delegates analysis and planning to specialists
 
 To change the model, edit `.opencode/agents/orchestrator.md`:

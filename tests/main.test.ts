@@ -98,7 +98,7 @@ async function before(hooks: Hooks, tool: string, sessionID: string, args: Recor
 
 async function createWorktree(hooks: Hooks, branch: string, task = "do the thing"): Promise<void> {
   const result = await getTool(hooks, "worktree_create").execute({ branch, task }, {})
-  assert.match(result, /✅ Worktree:/)
+  assert.match(result, /OK Worktree:/)
 }
 
 describe("plugin registration", () => {
@@ -224,11 +224,11 @@ describe("agent permission enforcement", () => {
     await assert.rejects(before(hooks, "edit", "ro", { filePath: "a.ts" }), /read-only/)
 
     const result = await getTool(hooks, "unregister_agent").execute({ sessionID: "ro" }, {})
-    assert.match(result, /✅ Unregistered/)
+    assert.match(result, /OK Unregistered/)
     await assert.doesNotReject(before(hooks, "edit", "ro", { filePath: "a.ts" }))
 
     const again = await getTool(hooks, "unregister_agent").execute({ sessionID: "ro" }, {})
-    assert.match(again, /⚠️ Not found/)
+    assert.match(again, /WARN Not found/)
   })
 })
 
@@ -240,7 +240,7 @@ describe("worktree lifecycle", () => {
       {},
     )
 
-    assert.match(result, /✅ Worktree: feat-login/)
+    assert.match(result, /OK Worktree: feat-login/)
     const worktreePath = join(dir, "worktrees", "feat-login")
     assert.ok(existsSync(worktreePath))
 
@@ -269,7 +269,7 @@ describe("worktree lifecycle", () => {
     await createWorktree(hooks, "feat/dup")
 
     const result = await getTool(hooks, "worktree_create").execute({ branch: "feat/dup", task: "again" }, {})
-    assert.match(result, /⚠️ Worktree exists: feat-dup/)
+    assert.match(result, /WARN Worktree exists: feat-dup/)
   })
 
   test("reports status for in-progress, done, blocked and errored worktrees", async () => {
@@ -284,10 +284,10 @@ describe("worktree lifecycle", () => {
     writeFileSync(join(dir, "worktrees", "feat-error", ".agent-error"), "boom")
 
     const status = await getTool(hooks, "status").execute({}, {})
-    assert.match(status, /⏳ feat-wip/)
-    assert.match(status, /✅ feat-done/)
-    assert.match(status, /🚫 feat-blocked/)
-    assert.match(status, /❌ feat-error/)
+    assert.match(status, /WIP feat-wip/)
+    assert.match(status, /OK feat-done/)
+    assert.match(status, /BLOCKED feat-blocked/)
+    assert.match(status, /ERROR feat-error/)
     assert.match(status, /Total:4 Done:1 WIP:1 Blocked:1 Err:1/)
   })
 
@@ -304,7 +304,7 @@ describe("worktree lifecycle", () => {
     writeFileSync(join(worktreePath, ".agent-blocked"), "old block")
 
     const result = await getTool(hooks, "done").execute({ worktree: "feat-finish", summary: "all good" }, {})
-    assert.match(result, /✅ Done: feat-finish/)
+    assert.match(result, /OK Done: feat-finish/)
     assert.equal(readFileSync(join(worktreePath, ".agent-done"), "utf-8").trim(), "all good")
     assert.equal(existsSync(join(worktreePath, ".agent-error")), false)
     assert.equal(existsSync(join(worktreePath, ".agent-blocked")), false)
@@ -315,7 +315,7 @@ describe("worktree lifecycle", () => {
     await createWorktree(hooks, "feat/stuck")
 
     const result = await getTool(hooks, "blocked").execute({ worktree: "feat-stuck", reason: "missing API key" }, {})
-    assert.match(result, /🚫 Blocked: feat-stuck/)
+    assert.match(result, /BLOCKED Blocked: feat-stuck/)
     assert.equal(
       readFileSync(join(dir, "worktrees", "feat-stuck", ".agent-blocked"), "utf-8").trim(),
       "missing API key",
@@ -329,7 +329,7 @@ describe("worktree lifecycle", () => {
     const result = await getTool(hooks, "read_task").execute({ worktree: "feat-read" }, {})
     assert.match(result, /Implement the widget/)
 
-    assert.match(await getTool(hooks, "read_task").execute({ worktree: "nope" }, {}), /❌ No task: nope/)
+    assert.match(await getTool(hooks, "read_task").execute({ worktree: "nope" }, {}), /ERROR No task: nope/)
   })
 
   test("visualize reports progress", async () => {
@@ -340,15 +340,15 @@ describe("worktree lifecycle", () => {
 
     const result = await getTool(hooks, "visualize").execute({}, {})
     assert.match(result, /Progress: 50% \(1\/2\)/)
-    assert.match(result, /✅ feat-one \(done\)/)
-    assert.match(result, /⏳ feat-two \(wip\)/)
+    assert.match(result, /OK feat-one \(done\)/)
+    assert.match(result, /WIP feat-two \(wip\)/)
   })
 
   test("missing worktrees are reported consistently", async () => {
     const { hooks } = await setupRepo()
     for (const name of ["test", "merge", "cleanup", "done", "blocked"]) {
       const result = await getTool(hooks, name).execute({ worktree: "ghost" }, {})
-      assert.match(result, /❌ Not found: ghost/)
+      assert.match(result, /ERROR Not found: ghost/)
     }
   })
 
@@ -367,8 +367,8 @@ describe("worktree lifecycle", () => {
     )
 
     const result = await getTool(hooks, "test").execute({ worktree: "feat-checks" }, {})
-    assert.match(result, /❌ Failed: test/)
-    assert.match(result, /✅ lint/)
+    assert.match(result, /ERROR Failed: test/)
+    assert.match(result, /OK lint/)
     assert.ok(existsSync(join(worktreePath, ".agent-error")))
   })
 
@@ -384,11 +384,11 @@ describe("worktree lifecycle", () => {
 
     assert.match(
       await getTool(hooks, "test").execute({ worktree: "feat-pass" }, {}),
-      /✅ All passed: test/,
+      /OK All passed: test/,
     )
     assert.equal(
       await getTool(hooks, "test").execute({ worktree: "feat-empty" }, {}),
-      "⚠️ No checks found",
+      "WARN No checks found",
     )
   })
 
@@ -401,12 +401,12 @@ describe("worktree lifecycle", () => {
 
     assert.match(
       await getTool(hooks, "merge").execute({ worktree: "feat-merge" }, {}),
-      /❌ Not done: feat-merge/,
+      /ERROR Not done: feat-merge/,
     )
 
     await getTool(hooks, "done").execute({ worktree: "feat-merge", summary: "ready" }, {})
     const result = await getTool(hooks, "merge").execute({ worktree: "feat-merge" }, {})
-    assert.match(result, /✅ Merged: feat\/merge/)
+    assert.match(result, /OK Merged: feat\/merge/)
     assert.ok(existsSync(join(dir, "feature.txt")))
   })
 
@@ -417,13 +417,13 @@ describe("worktree lifecycle", () => {
 
     assert.match(
       await getTool(hooks, "cleanup").execute({ worktree: "feat-clean" }, {}),
-      /❌ Not done \(use force=true\)/,
+      /ERROR Not done \(use force=true\)/,
     )
     assert.ok(existsSync(worktreePath))
 
     assert.match(
       await getTool(hooks, "cleanup").execute({ worktree: "feat-clean", force: true }, {}),
-      /✅ Cleaned: feat-clean/,
+      /OK Cleaned: feat-clean/,
     )
     assert.equal(existsSync(worktreePath), false)
   })
@@ -437,7 +437,7 @@ describe("reporting tools", () => {
       {},
     )
 
-    assert.match(result, /✅ Logged/)
+    assert.match(result, /OK Logged/)
     const lines = readFileSync(join(dir, ".agent-logs.jsonl"), "utf-8").trim().split("\n")
     const entry = JSON.parse(lines[0])
     assert.equal(entry.level, "info")
@@ -450,7 +450,7 @@ describe("reporting tools", () => {
     const { hooks } = await setupRepo({ packageJson: { dependencies: { a: "1", b: "2" } } })
     const result = await getTool(hooks, "analyze").execute({ mode: "full" }, {})
 
-    assert.match(result, /✅ Analyzed: Files: \d+ \| Deps: 2/)
+    assert.match(result, /OK Analyzed: Files: \d+ \| Deps: 2/)
   })
 
   test("create_plan reports the task count", async () => {
@@ -467,7 +467,7 @@ describe("reporting tools", () => {
       {},
     )
 
-    assert.match(result, /✅ Plan: release \(2 tasks\)/)
+    assert.match(result, /OK Plan: release \(2 tasks\)/)
   })
 
   test("review writes the verdict to the worktree", async () => {
@@ -484,7 +484,7 @@ describe("reporting tools", () => {
       {},
     )
 
-    assert.match(result, /✅ Review: approved \(1 issues\)/)
+    assert.match(result, /Review: approved \(1 issues\)/)
     assert.equal(
       readFileSync(join(dir, "worktrees", "feat-review", ".agent-review"), "utf-8"),
       "approved: Looks good",
@@ -502,7 +502,7 @@ describe("reporting tools", () => {
       { target: "https://example.com", mode: "deep", riskLevel: "high", summary: "found stuff", findings },
       {},
     )
-    assert.match(jsonResult, /🟠 Pentest: high \| 2 findings \(1 critical, 0 high\)/)
+    assert.match(jsonResult, /Pentest: high \| 2 findings \(1 critical, 0 high\)/)
 
     const scanFiles = readdirSync(dir).filter((name) => name.startsWith(".pentest-scan-"))
     assert.equal(scanFiles.length, 1)
@@ -540,7 +540,7 @@ describe("reporting tools", () => {
       },
       {},
     )
-    assert.match(blocked, /❌ Security: critical/)
+    assert.match(blocked, /Security: critical/)
     assert.equal(
       readFileSync(join(dir, "worktrees", "feat-sec", ".agent-security"), "utf-8"),
       "critical: rce",
@@ -550,7 +550,7 @@ describe("reporting tools", () => {
       { target: "main", riskLevel: "low", summary: "clean" },
       {},
     )
-    assert.match(clean, /✅ Security: low/)
+    assert.match(clean, /Security: low/)
   })
 
   test("pentest_check_tools reports availability as json", async () => {
@@ -575,14 +575,14 @@ describe("reporting tools", () => {
     })
 
     const result = await getTool(hooks, "final_check").execute({ baseCommit: "HEAD" }, {})
-    assert.match(result, /✅ All passed: lint, typecheck/)
+    assert.match(result, /OK All passed: lint, typecheck/)
   })
 
   test("final_check reports when no checks are configured", async () => {
     const { hooks } = await setupRepo()
     assert.equal(
       await getTool(hooks, "final_check").execute({ baseCommit: "HEAD" }, {}),
-      "⚠️ No checks found",
+      "WARN No checks found",
     )
   })
 
@@ -590,7 +590,7 @@ describe("reporting tools", () => {
     const { hooks } = await setupRepo()
     assert.equal(
       await getTool(hooks, "push_and_watch").execute({}, {}),
-      "⚠️ No remote configured",
+      "WARN No remote configured",
     )
   })
 })

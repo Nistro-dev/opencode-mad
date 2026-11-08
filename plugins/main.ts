@@ -246,12 +246,12 @@ Each worktree has its own branch and working directory.`,
             // Validate inputs
             if (!branch || branch.trim() === "") {
               logEvent("error", "worktree_create failed: empty branch name")
-              return "❌ Branch name required"
+              return "ERROR Branch name required"
             }
 
             if (!task || task.trim() === "") {
               logEvent("error", "worktree_create failed: empty task description")
-              return "❌ Task description required"
+              return "ERROR Task description required"
             }
 
             const gitRoot = getGitRoot()
@@ -263,7 +263,7 @@ Each worktree has its own branch and working directory.`,
             // Check if worktree already exists
             if (existsSync(worktreePath)) {
               logEvent("warn", "Worktree already exists", { branch, path: worktreePath })
-              return `⚠️ Worktree exists: ${sessionName}`
+              return `WARN Worktree exists: ${sessionName}`
             }
 
             logEvent("info", "Creating worktree", { branch, baseBranch })
@@ -292,7 +292,7 @@ worktrees/
               mkdirSync(worktreeDir, { recursive: true })
             } catch (error: unknown) {
               logEvent("error", "Failed to create worktree directory", { error: errorMessage(error) })
-              return `❌ mkdir failed: ${errorMessage(error)}`
+              return `ERROR mkdir failed: ${errorMessage(error)}`
             }
 
             // Check if branch exists
@@ -311,7 +311,7 @@ worktrees/
                 command: worktreeCmd,
                 error: worktreeResult.error
               })
-              return `❌ git worktree failed: ${worktreeResult.error}`
+              return `ERROR git worktree failed: ${worktreeResult.error}`
             }
 
             // Write task file using Node.js
@@ -330,13 +330,13 @@ ${task}
 
             logEvent("info", "Worktree created successfully", { branch, path: worktreePath })
 
-            return `✅ Worktree: ${sessionName} (${branch})`
+            return `OK Worktree: ${sessionName} (${branch})`
           } catch (error: unknown) {
             logEvent("error", "worktree_create exception", {
               error: errorMessage(error),
               stack: error instanceof Error ? error.stack : undefined,
             })
-            return `❌ Error: ${errorMessage(error)}`
+            return `ERROR Error: ${errorMessage(error)}`
           }
         },
       }),
@@ -373,10 +373,10 @@ Shows which tasks are done, in progress, blocked, or have errors.`,
             const blockedFile = join(wpath, ".agent-blocked")
             const errorFile = join(wpath, ".agent-error")
 
-            let icon = "⏳"
-            if (existsSync(doneFile)) { icon = "✅"; done++ }
-            else if (existsSync(blockedFile)) { icon = "🚫"; blocked++ }
-            else if (existsSync(errorFile)) { icon = "❌"; errors++ }
+            let icon = "WIP"
+            if (existsSync(doneFile)) { icon = "OK"; done++ }
+            else if (existsSync(blockedFile)) { icon = "BLOCKED"; blocked++ }
+            else if (existsSync(errorFile)) { icon = "ERROR"; errors++ }
             else { wip++ }
 
             rows.push(`${icon} ${entry}`)
@@ -401,7 +401,7 @@ Returns the results and creates an error file if tests fail.`,
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
 
           if (!existsSync(worktreePath)) {
-            return `❌ Not found: ${args.worktree}`
+            return `ERROR Not found: ${args.worktree}`
           }
 
           let passed: string[] = []
@@ -446,10 +446,10 @@ Returns the results and creates an error file if tests fail.`,
             writeFileSync(join(worktreePath, ".agent-error"), errorMessages)
             const doneFile = join(worktreePath, ".agent-done")
             if (existsSync(doneFile)) unlinkSync(doneFile)
-            return `❌ Failed: ${failed.join(", ")}${passed.length ? ` | ✅ ${passed.join(", ")}` : ""}`
+            return `ERROR Failed: ${failed.join(", ")}${passed.length ? ` | OK ${passed.join(", ")}` : ""}`
           }
-          if (passed.length === 0) return "⚠️ No checks found"
-          return `✅ All passed: ${passed.join(", ")}`
+          if (passed.length === 0) return "WARN No checks found"
+          return `OK All passed: ${passed.join(", ")}`
         },
       }),
 
@@ -469,23 +469,23 @@ Handles merge conflicts by reporting them.`,
           const doneFile = join(worktreePath, ".agent-done")
 
           if (!existsSync(worktreePath)) {
-            return `❌ Not found: ${args.worktree}`
+            return `ERROR Not found: ${args.worktree}`
           }
 
           if (!existsSync(doneFile)) {
-            return `❌ Not done: ${args.worktree}`
+            return `ERROR Not done: ${args.worktree}`
           }
 
           const branch = readWorktreeBranch(worktreePath) ?? args.worktree
           const result = runCommand(`git merge --no-ff "${branch}" --no-edit`, gitRoot)
           if (result.success) {
-            return `✅ Merged: ${branch}`
+            return `OK Merged: ${branch}`
           } else {
             const output = result.error || ""
             if (output.includes("CONFLICT")) {
-              return `⚠️ Conflict in ${branch}`
+              return `WARN Conflict in ${branch}`
             }
-            return `❌ Merge failed: ${output.slice(0, 100)}`
+            return `ERROR Merge failed: ${output.slice(0, 100)}`
           }
         },
       }),
@@ -506,19 +506,19 @@ Removes the worktree directory and prunes git worktree references.`,
           const doneFile = join(worktreePath, ".agent-done")
 
           if (!existsSync(worktreePath)) {
-            return `❌ Not found: ${args.worktree}`
+            return `ERROR Not found: ${args.worktree}`
           }
 
           if (!args.force && !existsSync(doneFile)) {
-            return `❌ Not done (use force=true)`
+            return `ERROR Not done (use force=true)`
           }
 
           try {
             await $`git worktree remove ${worktreePath} --force`
             await $`git worktree prune`
-            return `✅ Cleaned: ${args.worktree}`
+            return `OK Cleaned: ${args.worktree}`
           } catch (error: unknown) {
-            return `❌ ${errorMessage(error)}`
+            return `ERROR ${errorMessage(error)}`
           }
         },
       }),
@@ -538,13 +538,13 @@ Use this when you've finished implementing the task in a worktree.`,
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
 
           if (!existsSync(worktreePath)) {
-            return `❌ Not found: ${args.worktree}`
+            return `ERROR Not found: ${args.worktree}`
           }
 
           await $`echo ${args.summary} > ${join(worktreePath, ".agent-done")}`
           await $`rm -f ${join(worktreePath, ".agent-error")} ${join(worktreePath, ".agent-blocked")}`
 
-          return `✅ Done: ${args.worktree}`
+          return `OK Done: ${args.worktree}`
         },
       }),
 
@@ -563,12 +563,12 @@ Use this when you cannot proceed due to missing information or dependencies.`,
           const worktreePath = join(gitRoot, "worktrees", args.worktree)
 
           if (!existsSync(worktreePath)) {
-            return `❌ Not found: ${args.worktree}`
+            return `ERROR Not found: ${args.worktree}`
           }
 
           await $`echo ${args.reason} > ${join(worktreePath, ".agent-blocked")}`
 
-          return `🚫 Blocked: ${args.worktree}`
+          return `BLOCKED Blocked: ${args.worktree}`
         },
       }),
 
@@ -586,7 +586,7 @@ Use this to understand what needs to be done in a specific worktree.`,
           const taskFile = join(gitRoot, "worktrees", args.worktree, ".agent-task")
 
           if (!existsSync(taskFile)) {
-            return `❌ No task: ${args.worktree}`
+            return `ERROR No task: ${args.worktree}`
           }
 
           return readFileSync(taskFile, "utf-8")
@@ -607,9 +607,9 @@ Creates structured logs in .agent-logs.jsonl for tracking the workflow.`,
         async execute(args) {
           try {
             await logEvent(args.level, args.message, args.context)
-            return `✅ Logged`
+            return `OK Logged`
           } catch (error: unknown) {
-            return `❌ ${errorMessage(error)}`
+            return `ERROR ${errorMessage(error)}`
           }
         },
       }),
@@ -647,11 +647,11 @@ Shows progress and worktree statuses.`,
               const blockedFile = join(wpath, ".agent-blocked")
               const errorFile = join(wpath, ".agent-error")
 
-              let icon = "⏳"
+              let icon = "WIP"
               let status = "wip"
-              if (existsSync(doneFile)) { icon = "✅"; status = "done"; done++ }
-              else if (existsSync(blockedFile)) { icon = "🚫"; status = "blocked"; blocked++ }
-              else if (existsSync(errorFile)) { icon = "❌"; status = "error"; errors++ }
+              if (existsSync(doneFile)) { icon = "OK"; status = "done"; done++ }
+              else if (existsSync(blockedFile)) { icon = "BLOCKED"; status = "blocked"; blocked++ }
+              else if (existsSync(errorFile)) { icon = "ERROR"; status = "error"; errors++ }
               else { wip++ }
 
               rows.push(`${icon} ${entry} (${status})`)
@@ -660,7 +660,7 @@ Shows progress and worktree statuses.`,
             const progress = total > 0 ? Math.round((done / total) * 100) : 0
             return `Progress: ${progress}% (${done}/${total})\n${rows.join("\n")}`
           } catch (error: unknown) {
-            return `❌ ${errorMessage(error)}`
+            return `ERROR ${errorMessage(error)}`
           }
         },
       }),
@@ -676,11 +676,11 @@ Returns the current version, latest version, and whether an update is available.
           try {
             const updateInfo = await checkForUpdates()
             if (updateInfo.hasUpdate) {
-              return `🔄 Update: ${updateInfo.current} → ${updateInfo.latest}`
+              return `UPDATE Update: ${updateInfo.current} → ${updateInfo.latest}`
             }
-            return `✅ Up to date: ${updateInfo.current}`
+            return `OK Up to date: ${updateInfo.current}`
           } catch (error: unknown) {
-            return `❌ ${errorMessage(error)}`
+            return `ERROR ${errorMessage(error)}`
           }
         },
       }),
@@ -702,7 +702,7 @@ If CI fails, returns error details for the orchestrator to spawn a fixer.`,
 
             const remoteResult = runCommand("git remote get-url origin", gitRoot)
             if (!remoteResult.success) {
-              return "⚠️ No remote configured"
+              return "WARN No remote configured"
             }
 
             const branch = getCurrentBranch()
@@ -711,12 +711,12 @@ If CI fails, returns error details for the orchestrator to spawn a fixer.`,
 
             const pushResult = runCommand(pushCmd, gitRoot)
             if (!pushResult.success) {
-              return `❌ Push failed: ${pushResult.error?.slice(0, 100)}`
+              return `ERROR Push failed: ${pushResult.error?.slice(0, 100)}`
             }
 
             const ghCheck = runCommand("gh --version", gitRoot)
             if (!ghCheck.success) {
-              return "✅ Pushed (no gh CLI for CI)"
+              return "OK Pushed (no gh CLI for CI)"
             }
 
             const runsResult = runCommand(
@@ -725,18 +725,18 @@ If CI fails, returns error details for the orchestrator to spawn a fixer.`,
             )
 
             let runs: GitHubRun[] = []
-            try { runs = JSON.parse(runsResult.output) as GitHubRun[] } catch { return "✅ Pushed (no CI)" }
+            try { runs = JSON.parse(runsResult.output) as GitHubRun[] } catch { return "OK Pushed (no CI)" }
             const run = runs[0]
-            if (!run) return "✅ Pushed (no CI)"
+            if (!run) return "OK Pushed (no CI)"
             if (run.status === "completed") {
-              return run.conclusion === "success" ? "✅ Pushed, CI passed" : `❌ CI failed: ${run.name}`
+              return run.conclusion === "success" ? "OK Pushed, CI passed" : `ERROR CI failed: ${run.name}`
             }
 
             const watchResult = runCommand(`gh run watch ${run.databaseId} --exit-status`, gitRoot)
-            return watchResult.success ? "✅ Pushed, CI passed" : `❌ CI failed: ${run.name}`
+            return watchResult.success ? "OK Pushed, CI passed" : `ERROR CI failed: ${run.name}`
           } catch (error: unknown) {
             logEvent("error", "push_and_watch exception", { error: errorMessage(error) })
-            return `❌ ${errorMessage(error)}`
+            return `ERROR ${errorMessage(error)}`
           }
         }
       }),
@@ -825,21 +825,21 @@ Compares errors against files modified during the session.`,
             }
 
             if (passed.length === 0 && failed.length === 0) {
-              return "⚠️ No checks found"
+              return "WARN No checks found"
             }
 
             if (failed.length === 0) {
-              return `✅ All passed: ${passed.join(", ")}`
+              return `OK All passed: ${passed.join(", ")}`
             }
 
-            let result = `❌ Failed: ${failed.join(", ")}`
-            if (passed.length) result += ` | ✅ ${passed.join(", ")}`
+            let result = `ERROR Failed: ${failed.join(", ")}`
+            if (passed.length) result += ` | OK ${passed.join(", ")}`
             if (sessionErrors) result += ` | Session errors: ${sessionErrors}`
             if (preExistingErrors) result += ` | Pre-existing: ${preExistingErrors}`
             return result
           } catch (error: unknown) {
             logEvent("error", "final_check exception", { error: errorMessage(error) })
-            return `❌ ${errorMessage(error)}`
+            return `ERROR ${errorMessage(error)}`
           }
         },
       }),
@@ -881,7 +881,7 @@ The plugin will then BLOCK any unauthorized actions.`,
 
           logEvent("info", `Registered agent permissions`, { sessionID, agentType, canEdit, worktree })
 
-          return `✅ Registered: ${agentType}`
+          return `OK Registered: ${agentType}`
         }
       }),
 
@@ -913,7 +913,7 @@ Use mode 'full' for complete project scan, 'targeted' for task-specific analysis
           if (pkg) info += ` | Deps: ${Object.keys(pkg.dependencies || {}).length}`
 
           logEvent("info", "Codebase analysis completed", { mode, focus })
-          return `✅ Analyzed: ${info}`
+          return `OK Analyzed: ${info}`
         }
       }),
 
@@ -929,7 +929,7 @@ Use mode 'full' for complete project scan, 'targeted' for task-specific analysis
           const existed = agentPermissions.has(args.sessionID)
           agentPermissions.delete(args.sessionID)
           logEvent("info", `Unregistered agent`, { sessionID: args.sessionID })
-          return existed ? `✅ Unregistered` : `⚠️ Not found`
+          return existed ? `OK Unregistered` : `WARN Not found`
         }
       }),
 
@@ -955,7 +955,7 @@ The plan will be available for the orchestrator to present to the user.`,
 
           logEvent("info", "Development plan created", { planName, taskCount: tasks.length })
 
-          return `✅ Plan: ${planName} (${tasks.length} tasks)`
+          return `OK Plan: ${planName} (${tasks.length} tasks)`
         }
       }),
 
@@ -984,10 +984,9 @@ Called by the Reviewer agent after analyzing the code.`,
           const worktreePath = join(gitRoot, "worktrees", worktree)
 
           if (!existsSync(worktreePath)) {
-            return `❌ Not found: ${worktree}`
+            return `ERROR Not found: ${worktree}`
           }
 
-          const icon = verdict === 'approved' ? '✅' : verdict === 'changes_requested' ? '⚠️' : '❌'
           const issueCount = issues?.length || 0
 
           // Save report
@@ -995,7 +994,7 @@ Called by the Reviewer agent after analyzing the code.`,
 
           logEvent("info", "Code review submitted", { worktree, verdict, issueCount })
 
-          return `${icon} Review: ${verdict} (${issueCount} issues)`
+          return `Review: ${verdict} (${issueCount} issues)`
         }
       }),
 
@@ -1110,8 +1109,7 @@ Called by the Pentester agent after running security scans on a target.`,
             return md
           }
 
-          const icon = riskLevel === 'critical' ? '🔴' : riskLevel === 'high' ? '🟠' : riskLevel === 'medium' ? '🟡' : '🟢'
-          return `${icon} Pentest: ${riskLevel} | ${findingsCount} findings (${criticalCount} critical, ${highCount} high)`
+          return `Pentest: ${riskLevel} | ${findingsCount} findings (${criticalCount} critical, ${highCount} high)`
         }
       }),
 
@@ -1159,8 +1157,7 @@ Called by the Security agent after scanning for vulnerabilities.`,
 
           logEvent("info", "Security scan completed", { target, riskLevel, vulnCount })
 
-          const icon = canMerge ? '✅' : '❌'
-          return `${icon} Security: ${riskLevel} (${vulnCount} vulns, ${depCount} deps)`
+          return `Security: ${riskLevel} (${vulnCount} vulns, ${depCount} deps)`
         }
       }),
     },
@@ -1193,7 +1190,7 @@ Called by the Security agent after scanning for vulnerabilities.`,
       if (['edit', 'write', 'patch', 'multiedit'].includes(toolName)) {
         if (!perms.canEdit) {
           logEvent("warn", `BLOCKED: ${perms.type} tried to use ${toolName}`, { sessionID: input.sessionID })
-          throw new Error(`🚫 ${perms.type} is read-only`)
+          throw new Error(`BLOCKED ${perms.type} is read-only`)
         }
 
         // 2. Check path if allowedPaths is defined
@@ -1201,7 +1198,7 @@ Called by the Security agent after scanning for vulnerabilities.`,
         if (targetPath) {
           if (perms.deniedPaths.some((denied) => targetPath.includes(denied) || matchGlob(targetPath, denied))) {
             logEvent("warn", `BLOCKED: ${perms.type} tried to edit denied path`, { sessionID: input.sessionID, path: targetPath })
-            throw new Error(`🚫 Path denied: ${basename(targetPath)}`)
+            throw new Error(`BLOCKED Path denied: ${basename(targetPath)}`)
           }
 
           if (perms.allowedPaths && perms.allowedPaths.length > 0) {
@@ -1210,7 +1207,7 @@ Called by the Security agent after scanning for vulnerabilities.`,
             )
             if (!isAllowed) {
               logEvent("warn", `BLOCKED: ${perms.type} tried to edit outside allowed paths`, { sessionID: input.sessionID, path: targetPath })
-              throw new Error(`🚫 Outside allowed paths: ${basename(targetPath)}`)
+              throw new Error(`BLOCKED Outside allowed paths: ${basename(targetPath)}`)
             }
           }
         }
@@ -1235,7 +1232,7 @@ Called by the Security agent after scanning for vulnerabilities.`,
         for (const pattern of dangerousPatterns) {
           if (pattern.test(cmd)) {
             logEvent("warn", `BLOCKED: ${perms.type} tried dangerous bash command`, { sessionID: input.sessionID })
-            throw new Error(`🚫 ${perms.type} is read-only`)
+            throw new Error(`BLOCKED ${perms.type} is read-only`)
           }
         }
       }
