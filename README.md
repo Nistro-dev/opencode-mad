@@ -439,19 +439,27 @@ The pentester agent will:
 
 ## Configuration
 
-The orchestrator uses these defaults:
+Models are tuned for **cost efficiency first**. Every agent uses a low-cost model that still supports tool calling and reasoning:
 
-- Model: `anthropic/claude-opus-4-5`
+| Tier | Model | Cost (in → out / 1M) | Agents |
+| --- | --- | --- | --- |
+| Core (code + reasoning) | `opencode-go/deepseek-v4.1-flash` | $0.30 → $1.20 | orchestrator, architect, developer, fixer, merger |
+| Fast (read-only, scanning) | `opencode-go/qwen3.8-flash` | $0.15 → $0.47 | analyst, planner, tester, reviewer, security, pentester |
+
+Model IDs come from the `opencode-go` provider catalog (`models.json`). Compared with `anthropic/claude-opus-4-5` ($5 → $25), the core tier is ~17× cheaper and the fast tier ~50× cheaper.
+
 - Commits are made by developer, fixer, and merger agents; the orchestrator pushes only through `push_and_watch`, after merges and final checks
 - Always delegates analysis and planning to specialists
 
-To change the model, edit `.opencode/agents/orchestrator.md`:
+To change a model, edit the `model:` line in the agent's frontmatter (`.opencode/agents/<agent>.md`):
 
 ```yaml
 ---
-model: anthropic/claude-sonnet-4-20250514
+model: opencode-go/gpt-6-luna   # $0.10 → $0.50 — even cheaper alternative
 ---
 ```
+
+Zero-cost options are available in the same catalog (for example `opencode-go/glm-5.3-flash-free` or `opencode-go/deepseek-v4.1-flash-free`), but they have tighter rate limits, so they are not used as defaults.
 
 ## License
 

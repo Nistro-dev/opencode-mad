@@ -1,7 +1,7 @@
 ---
 description: Fixer - Resolves build errors, test failures, and integration issues in worktrees
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/deepseek-v4.1-flash
 temperature: 0.1
 color: "#ef4444"
 tools:

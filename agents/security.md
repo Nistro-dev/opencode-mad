@@ -1,7 +1,7 @@
 ---
 description: Security - Scans for vulnerabilities and checks security best practices
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/qwen3.8-flash
 temperature: 0.1
 color: "#dc2626"
 tools:

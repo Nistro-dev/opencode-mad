@@ -1,7 +1,7 @@
 ---
 description: Merger - Resolves git merge conflicts in a dedicated worktree
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/deepseek-v4.1-flash
 temperature: 0.1
 color: "#f59e0b"
 tools:

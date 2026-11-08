@@ -1,7 +1,7 @@
 ---
 description: Orchestrator - Coordinates parallel development by delegating to specialized agents
 mode: primary
-model: anthropic/claude-opus-4-5
+model: opencode-go/deepseek-v4.1-flash
 temperature: 0.3
 color: "#9333ea"
 permission:

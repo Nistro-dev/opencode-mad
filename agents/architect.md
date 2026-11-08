@@ -1,7 +1,7 @@
 ---
 description: Architect - Designs the development plan with file ownership
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/deepseek-v4.1-flash
 temperature: 0.3
 color: "#3b82f6"
 tools:

@@ -593,4 +593,39 @@ describe("reporting tools", () => {
       "WARN No remote configured",
     )
   })
+
+  test("config hook adds the free-tier DeepSeek fallback to opencode-go agents", async () => {
+    const { hooks } = await setupRepo()
+    const config: { agent: Record<string, Record<string, unknown>> } = {
+      agent: {
+        developer: { model: "opencode-go/deepseek-v4.1-flash" },
+        foreign: { model: "other/provider" },
+        pinned: { model: "opencode-go/glm-5.3-flash", fallback_model: "opencode-go/pinned" },
+      },
+    }
+
+    await hooks.config?.(config as never)
+
+    assert.equal(config.agent.developer.fallback_model, "opencode-go/deepseek-v4.1-flash-free")
+    assert.equal("fallback_model" in config.agent.foreign, false)
+    assert.equal(config.agent.pinned.fallback_model, "opencode-go/pinned")
+  })
+
+  test("chat.params hook sends fallback_model only for opencode-go", async () => {
+    const { hooks } = await setupRepo()
+    const opencodeGo = {
+      temperature: 0,
+      topP: 0,
+      topK: 0,
+      maxOutputTokens: undefined,
+      options: {} as Record<string, unknown>,
+    }
+    const other = { ...opencodeGo, options: {} as Record<string, unknown> }
+
+    await hooks["chat.params"]?.({ model: { providerID: "opencode-go" } } as never, opencodeGo as never)
+    await hooks["chat.params"]?.({ model: { providerID: "other" } } as never, other as never)
+
+    assert.equal(opencodeGo.options.fallback_model, "opencode-go/deepseek-v4.1-flash-free")
+    assert.equal(other.options.fallback_model, undefined)
+  })
 })

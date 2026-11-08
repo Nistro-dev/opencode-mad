@@ -140,6 +140,13 @@ function firstString(...values: unknown[]): string | undefined {
 const PACKAGE_NAME = "@fiandev/opencode-kit"
 const CURRENT_VERSION = "1.0.5"
 
+// Free-tier fallback used when an opencode-go model is unavailable or rate-limited.
+const FALLBACK_MODEL = "opencode-go/deepseek-v4.1-flash-free"
+
+/** True when a configured model reference belongs to the opencode-go provider. */
+const isOpenCodeGoModel = (model: unknown): model is string =>
+  typeof model === "string" && model.startsWith("opencode-go/")
+
 export const MultiAgentDevPlugin: Plugin = async ({ client, $, directory }) => {
 
   // Use the directory provided by OpenCode, fallback to process.cwd() for backwards compatibility
@@ -1174,6 +1181,22 @@ Called by the Security agent after scanning for vulnerabilities.`,
           },
         })
       }
+    },
+
+    // Give every opencode-go agent the free-tier DeepSeek fallback
+    config: async (config) => {
+      for (const agent of Object.values(config.agent ?? {})) {
+        if (!agent || !isOpenCodeGoModel(agent.model)) continue
+        if (agent.fallback_model === undefined) {
+          agent.fallback_model = FALLBACK_MODEL
+        }
+      }
+    },
+
+    // Send the fallback with each request so the router can recover automatically
+    "chat.params": async (input, output) => {
+      if (input.model.providerID !== "opencode-go") return
+      output.options = { ...output.options, fallback_model: FALLBACK_MODEL }
     },
 
     // Enforce agent constraints before tool execution

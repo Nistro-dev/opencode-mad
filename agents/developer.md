@@ -1,7 +1,7 @@
 ---
 description: Developer - Implements tasks in isolated worktrees with full coding capabilities
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/deepseek-v4.1-flash
 temperature: 0.2
 color: "#22c55e"
 tools:

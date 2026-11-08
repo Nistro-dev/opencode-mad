@@ -1,7 +1,7 @@
 ---
 description: Tester - Tests and validates code before merge (READ-ONLY)
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/qwen3.8-flash
 temperature: 0.1
 color: "#06b6d4"
 tools:
