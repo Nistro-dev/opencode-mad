@@ -1,7 +1,7 @@
 ---
 description: Planner - Clarifies requirements and plans file ownership before development starts
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/qwen3.8-flash
 temperature: 0.4
 color: "#3b82f6"
 tools:

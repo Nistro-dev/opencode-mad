@@ -1,6 +1,6 @@
 {
   "name": "@fiandev/opencode-kit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "opencode kit to give super ability for your harness",
   "type": "module",
   "main": "plugins/main.ts",
@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.19.5"
+    "@opencode/plugin": "2.0.23",
+    "zod": "4.1.8"
   },
   "keywords": [
     "opencode",

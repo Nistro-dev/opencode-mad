@@ -2,7 +2,7 @@
 
 Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **11 specialized agents** and **hard constraints** enforced at the code level.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **18 specialized agents** and **hard constraints** enforced at the code level.
 
 ## What's New in v1.0.0
 
@@ -50,6 +50,8 @@ The orchestrator now **delegates** analysis and planning to specialized agents:
 - **Quality Gates** - Tester, Reviewer, and Security agents validate before merge
 - **Conflict Resolution** - Dedicated merger agent handles git conflicts
 - **Integration Fixes** - Fixer agent ensures everything works together
+- **Release Automation** - `/version-update` analyzes local and remote tags, recommends the
+  next semver version, and applies the bump and changelog (with optional commit, tag, and push)
 
 ## Installation
 
@@ -103,7 +105,13 @@ your-project/
 │   │   ├── reviewer.md       # Code review (READ-ONLY)
 │   │   ├── security.md       # Security scanning (READ-ONLY)
 │   │   ├── pentester.md      # Web penetration testing (READ-ONLY)
-│   │   ├── merger.md         # Resolves conflicts
+│   │   ├── pr.md             # Creates/updates pull requests
+│   │   ├── pr-reviewer.md    # Reviews pull requests (READ-ONLY)
+│   │   ├── pr-resolver.md    # Fixes PR review feedback
+│   │   ├── conflict-resolver.md # Resolves git conflicts
+│   │   ├── version-analyzer.md # Analyzes diffs since a tag (READ-ONLY)
+│   │   ├── version-updater.md # Applies version + changelog (optional commit/tag)
+│   │   ├── merger.md         # Resolves workflow conflicts
 │   │   └── fixer.md          # Fixes integration
 │   ├── commands/
 │   ├── plugins/
@@ -143,11 +151,88 @@ Orchestrator: [Creates worktrees, spawns developers in parallel...]
 
 | Command           | Description                   |
 | ----------------- | ----------------------------- |
-| `/mad <task>`     | Start parallel orchestration  |
+| `/orchestration <task>` | Start parallel orchestration |
 | `/status`         | Show worktree status          |
 | `/visualize`      | ASCII dashboard               |
 | `/fix <worktree>` | Fix errors in a worktree      |
 | `/merge-all`      | Merge all completed worktrees |
+| `/pr [base]`      | Create or update a pull request (fork-aware) |
+| `/pr-review [pr]` | Review a pull request         |
+| `/pr-resolve [pr]`| Fix PR review comments        |
+| `/conflict-resolve [branch\|pr]` | Resolve git conflicts |
+| `/version-update [flags]` | Analyze the diff since a local/remote tag, then bump version + changelog |
+
+### Pull Requests & Conflicts
+
+These commands delegate to dedicated subagents, so they also work outside the parallel
+worktree workflow:
+
+```bash
+/pr                       # open a PR for the current branch (or update the existing one)
+/pr develop               # target a specific base branch
+/pr --upstream            # force a contribution PR to the fork's parent repository
+/pr --fork                # force the PR to stay in the origin fork
+/pr-review 42             # review PR #42 and submit a verdict
+/pr-review                # review the PR for the current branch
+/pr-resolve 42            # fix unresolved review threads, push, and resolve them
+/conflict-resolve         # resolve the conflict currently in progress
+/conflict-resolve feat/x  # merge feat/x and resolve the resulting conflicts
+```
+
+`/pr` checks whether `origin` is a fork:
+
+| Origin | Behavior |
+| --- | --- |
+| Not a fork | Opens the PR against `origin` directly |
+| Fork, `--upstream` / `--contribution` | Opens a contribution PR against the parent repository, with `fork-owner:branch` as the head |
+| Fork, `--fork` | Opens the PR inside the fork |
+| Fork, no flag | **Asks first** whether to open a contribution PR or a fork PR, and waits for the answer |
+
+It never guesses the destination, never pushes a contribution branch to the upstream
+repository, and never opens duplicate PRs in both places.
+
+They use the [GitHub CLI](https://cli.github.com); run `gh auth login` once before using
+them. The commands never force-push, never merge the PR, and never resolve a review thread
+whose code was not actually fixed.
+
+### Version Updates
+
+`/version-update` analyzes the diff between an existing tag and `HEAD`, then applies the
+resulting semver bump. Tags are discovered from local refs **and** from all configured
+remotes (or one remote when `--remote` is given), so a release tag that exists only on
+`origin` or `upstream` can still be the baseline.
+
+```bash
+/version-update                          # latest tag (local + origin), ask before applying
+/version-update --from=v1.4.0            # explicit baseline tag/ref
+/version-update --from=v1.4.0 --dry-run  # analyze only, change nothing
+/version-update --remote=upstream        # inspect only tags on another remote (and push there)
+/version-update minor                    # force the bump type
+/version-update --bump=major --yes       # force a major bump, skip the confirmation
+/version-update --package=packages/api   # version one package in a monorepo
+/version-update --first-release          # no baseline tag: analyze the full history
+/version-update --no-fetch               # local tags only, do not contact the remote
+/version-update --changelog              # create CHANGELOG.md when missing
+/version-update --commit --tag           # commit the bump and create the annotated tag
+/version-update --commit --tag --push    # also push the branch and tag
+```
+
+The work is split across two subagents on purpose:
+
+| Agent | Access | Responsibility |
+| --- | --- | --- |
+| `version-analyzer` | READ-ONLY | Resolves the baseline from local/remote tags, diffs it against `HEAD`, classifies breaking/feature/fix changes, recommends the next semver version, and drafts the changelog entry |
+| `version-updater` | Release files only | Applies the approved version across manifests, lockfiles, and `CHANGELOG.md`, verifies the diff, then optionally commits, tags, and pushes |
+
+Safety defaults:
+
+- Dirty working tree → unrelated files are never committed, and a target manifest with
+  pre-existing edits stops the update.
+- Existing tag → never moved, overwritten, or force-pushed.
+- No commit or tag unless `--commit` or `--tag` is passed. No push unless `--push` is passed,
+  and `--push` requires `--commit` or `--tag`.
+- `npm publish` and GitHub releases are always separate, explicit steps.
+- No commits since the baseline or no user-facing change → recommends `none` and stops.
 
 ### Reporting Bugs
 
@@ -272,8 +357,14 @@ BLOCKED Path denied: package.json
 | pentester    | Yes  | No   | Yes (pentest tools)    | `**/*`                               |
 | merger       | Yes  | Yes  | Yes                    | Conflict files                       |
 | fixer        | Yes  | Yes  | Yes                    | Integration files                    |
+| pr           | Yes  | No   | Yes (git/gh)           | `**/*`                               |
+| pr-reviewer  | Yes  | No   | Yes (git/gh)           | `**/*`                               |
+| pr-resolver  | Yes  | Yes  | Yes                    | PR review scope                      |
+| conflict-resolver | Yes | Yes | Yes                   | Conflicted files                     |
+| version-analyzer | Yes | No | Yes (git read-only)   | `**/*`                               |
+| version-updater | Yes | Yes | Yes (version files)   | Manifests + changelog                |
 
-> "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`) are blocked for read-only agents.
+> "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`, tag creation) are blocked for read-only agents.
 
 ### Developer File Ownership
 
@@ -306,6 +397,12 @@ This prevents merge conflicts and ensures clean parallel development.
 | `merger`       | subagent | Conflict Write    | Resolves git merge conflicts                                              |
 | `fixer`        | subagent | Integration Write | Fixes cross-component integration issues                                  |
 | `pentester`    | subagent | READ-ONLY         | Web penetration testing via URL (3 scan modes)                            |
+| `pr`           | subagent | Git/GitHub Write  | Creates and updates pull requests from the current branch                 |
+| `pr-reviewer`  | subagent | READ-ONLY         | Reviews pull requests and submits a verdict                               |
+| `pr-resolver`  | subagent | Scoped Write      | Fixes PR review comments, pushes, and resolves threads                    |
+| `conflict-resolver` | subagent | Conflict Write | Resolves merge, rebase, cherry-pick, and revert conflicts              |
+| `version-analyzer` | subagent | READ-ONLY    | Diffs HEAD against a local/remote tag, classifies changes, recommends the next semver version and changelog |
+| `version-updater` | subagent | Release Write | Applies the approved version across manifests, lockfiles, and CHANGELOG; optional commit/tag/push |
 
 ## Custom Tools
 
@@ -432,26 +529,35 @@ The pentester agent will:
 
 ## Requirements
 
-- [OpenCode](https://opencode.ai) 1.19.5+ (matches the `@opencode-ai/plugin` dependency)
+- [OpenCode](https://opencode.ai) 2.0.23+ (matches the `@opencode/plugin` dependency)
 - Git (for worktrees)
 - Node.js 18+
+- [GitHub CLI](https://cli.github.com) (`gh`), authenticated, for `/pr`, `/pr-review`, and `/pr-resolve`
 - **For pentesting**: nmap, nikto, sqlmap, curl, plus optional nuclei, httpx, ffuf, and gobuster
 
 ## Configuration
 
-The orchestrator uses these defaults:
+Models are tuned for **cost efficiency first**. Every agent uses a low-cost model that still supports tool calling and reasoning:
 
-- Model: `anthropic/claude-opus-4-5`
+| Tier | Model | Cost (in → out / 1M) | Agents |
+| --- | --- | --- | --- |
+| Core (code + reasoning) | `opencode-go/deepseek-v4.1-flash` | $0.30 → $1.20 | orchestrator, architect, developer, fixer, merger, pr, pr-resolver, conflict-resolver |
+| Fast (read-only, scanning) | `opencode-go/qwen3.8-flash` | $0.15 → $0.47 | analyst, planner, tester, reviewer, security, pentester, pr-reviewer |
+
+Model IDs come from the `opencode-go` provider catalog (`models.json`). Compared with `anthropic/claude-opus-4-5` ($5 → $25), the core tier is ~17× cheaper and the fast tier ~50× cheaper.
+
 - Commits are made by developer, fixer, and merger agents; the orchestrator pushes only through `push_and_watch`, after merges and final checks
 - Always delegates analysis and planning to specialists
 
-To change the model, edit `.opencode/agents/orchestrator.md`:
+To change a model, edit the `model:` line in the agent's frontmatter (`.opencode/agents/<agent>.md`):
 
 ```yaml
 ---
-model: anthropic/claude-sonnet-4-20250514
+model: opencode-go/gpt-6-luna   # $0.10 → $0.50 — even cheaper alternative
 ---
 ```
+
+Zero-cost options are available in the same catalog (for example `opencode-go/glm-5.3-flash-free` or `opencode-go/deepseek-v4.1-flash-free`), but they have tighter rate limits, so they are not used as defaults.
 
 ## License
 

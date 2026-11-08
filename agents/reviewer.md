@@ -1,7 +1,7 @@
 ---
 description: Reviewer - Reviews code before merge, checks quality and conventions
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/qwen3.8-flash
 temperature: 0.2
 color: "#10b981"
 tools:

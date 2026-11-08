@@ -1,7 +1,7 @@
 ---
 description: Analyst - Analyzes the codebase in depth before any action
 mode: subagent
-model: anthropic/claude-opus-4-5
+model: opencode-go/qwen3.8-flash
 temperature: 0.1
 color: "#8b5cf6"
 tools:
