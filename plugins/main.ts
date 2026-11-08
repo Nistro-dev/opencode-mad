@@ -38,6 +38,10 @@ type AgentType =
   | "security"
   | "pentester"
   | "typescript-engineer"
+  | "pr"
+  | "pr-reviewer"
+  | "pr-resolver"
+  | "conflict-resolver"
 
 /** Agents that must never modify files. */
 const READ_ONLY_AGENTS: readonly AgentType[] = [
@@ -48,6 +52,7 @@ const READ_ONLY_AGENTS: readonly AgentType[] = [
   "reviewer",
   "security",
   "pentester",
+  "pr-reviewer",
 ]
 
 interface AgentPermissions {
@@ -874,7 +879,8 @@ The plugin will then BLOCK any unauthorized actions.`,
           sessionID: tool.schema.string().describe("The session ID of the agent"),
           agentType: tool.schema.enum([
             "orchestrator", "analyst", "architect", "developer",
-            "tester", "reviewer", "fixer", "merger", "security", "pentester", "typescript-engineer"
+            "tester", "reviewer", "fixer", "merger", "security", "pentester", "typescript-engineer",
+            "pr", "pr-reviewer", "pr-resolver", "conflict-resolver"
           ]).describe("Type of agent"),
           worktree: tool.schema.string().optional().describe("Worktree path if applicable"),
           allowedPaths: tool.schema.array(tool.schema.string()).optional().describe("Paths the agent can edit (glob patterns)"),

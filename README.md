@@ -103,7 +103,11 @@ your-project/
 │   │   ├── reviewer.md       # Code review (READ-ONLY)
 │   │   ├── security.md       # Security scanning (READ-ONLY)
 │   │   ├── pentester.md      # Web penetration testing (READ-ONLY)
-│   │   ├── merger.md         # Resolves conflicts
+│   │   ├── pr.md             # Creates/updates pull requests
+│   │   ├── pr-reviewer.md    # Reviews pull requests (READ-ONLY)
+│   │   ├── pr-resolver.md    # Fixes PR review feedback
+│   │   ├── conflict-resolver.md # Resolves git conflicts
+│   │   ├── merger.md         # Resolves workflow conflicts
 │   │   └── fixer.md          # Fixes integration
 │   ├── commands/
 │   ├── plugins/
@@ -148,6 +152,43 @@ Orchestrator: [Creates worktrees, spawns developers in parallel...]
 | `/visualize`      | ASCII dashboard               |
 | `/fix <worktree>` | Fix errors in a worktree      |
 | `/merge-all`      | Merge all completed worktrees |
+| `/pr [base]`      | Create or update a pull request (fork-aware) |
+| `/pr-review [pr]` | Review a pull request         |
+| `/pr-resolve [pr]`| Fix PR review comments        |
+| `/conflict-resolve [branch\|pr]` | Resolve git conflicts |
+
+### Pull Requests & Conflicts
+
+These commands delegate to dedicated subagents, so they also work outside the parallel
+worktree workflow:
+
+```bash
+/pr                       # open a PR for the current branch (or update the existing one)
+/pr develop               # target a specific base branch
+/pr --upstream            # force a contribution PR to the fork's parent repository
+/pr --fork                # force the PR to stay in the origin fork
+/pr-review 42             # review PR #42 and submit a verdict
+/pr-review                # review the PR for the current branch
+/pr-resolve 42            # fix unresolved review threads, push, and resolve them
+/conflict-resolve         # resolve the conflict currently in progress
+/conflict-resolve feat/x  # merge feat/x and resolve the resulting conflicts
+```
+
+`/pr` checks whether `origin` is a fork:
+
+| Origin | Behavior |
+| --- | --- |
+| Not a fork | Opens the PR against `origin` directly |
+| Fork, `--upstream` / `--contribution` | Opens a contribution PR against the parent repository, with `fork-owner:branch` as the head |
+| Fork, `--fork` | Opens the PR inside the fork |
+| Fork, no flag | **Asks first** whether to open a contribution PR or a fork PR, and waits for the answer |
+
+It never guesses the destination, never pushes a contribution branch to the upstream
+repository, and never opens duplicate PRs in both places.
+
+They use the [GitHub CLI](https://cli.github.com); run `gh auth login` once before using
+them. The commands never force-push, never merge the PR, and never resolve a review thread
+whose code was not actually fixed.
 
 ### Reporting Bugs
 
@@ -272,6 +313,10 @@ BLOCKED Path denied: package.json
 | pentester    | Yes  | No   | Yes (pentest tools)    | `**/*`                               |
 | merger       | Yes  | Yes  | Yes                    | Conflict files                       |
 | fixer        | Yes  | Yes  | Yes                    | Integration files                    |
+| pr           | Yes  | No   | Yes (git/gh)           | `**/*`                               |
+| pr-reviewer  | Yes  | No   | Yes (git/gh)           | `**/*`                               |
+| pr-resolver  | Yes  | Yes  | Yes                    | PR review scope                      |
+| conflict-resolver | Yes | Yes | Yes                   | Conflicted files                     |
 
 > "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`) are blocked for read-only agents.
 
@@ -306,6 +351,10 @@ This prevents merge conflicts and ensures clean parallel development.
 | `merger`       | subagent | Conflict Write    | Resolves git merge conflicts                                              |
 | `fixer`        | subagent | Integration Write | Fixes cross-component integration issues                                  |
 | `pentester`    | subagent | READ-ONLY         | Web penetration testing via URL (3 scan modes)                            |
+| `pr`           | subagent | Git/GitHub Write  | Creates and updates pull requests from the current branch                 |
+| `pr-reviewer`  | subagent | READ-ONLY         | Reviews pull requests and submits a verdict                               |
+| `pr-resolver`  | subagent | Scoped Write      | Fixes PR review comments, pushes, and resolves threads                    |
+| `conflict-resolver` | subagent | Conflict Write | Resolves merge, rebase, cherry-pick, and revert conflicts              |
 
 ## Custom Tools
 
@@ -435,6 +484,7 @@ The pentester agent will:
 - [OpenCode](https://opencode.ai) 2.0.23+ (matches the `@opencode/plugin` dependency)
 - Git (for worktrees)
 - Node.js 18+
+- [GitHub CLI](https://cli.github.com) (`gh`), authenticated, for `/pr`, `/pr-review`, and `/pr-resolve`
 - **For pentesting**: nmap, nikto, sqlmap, curl, plus optional nuclei, httpx, ffuf, and gobuster
 
 ## Configuration
@@ -443,8 +493,8 @@ Models are tuned for **cost efficiency first**. Every agent uses a low-cost mode
 
 | Tier | Model | Cost (in → out / 1M) | Agents |
 | --- | --- | --- | --- |
-| Core (code + reasoning) | `opencode-go/deepseek-v4.1-flash` | $0.30 → $1.20 | orchestrator, architect, developer, fixer, merger |
-| Fast (read-only, scanning) | `opencode-go/qwen3.8-flash` | $0.15 → $0.47 | analyst, planner, tester, reviewer, security, pentester |
+| Core (code + reasoning) | `opencode-go/deepseek-v4.1-flash` | $0.30 → $1.20 | orchestrator, architect, developer, fixer, merger, pr, pr-resolver, conflict-resolver |
+| Fast (read-only, scanning) | `opencode-go/qwen3.8-flash` | $0.15 → $0.47 | analyst, planner, tester, reviewer, security, pentester, pr-reviewer |
 
 Model IDs come from the `opencode-go` provider catalog (`models.json`). Compared with `anthropic/claude-opus-4-5` ($5 → $25), the core tier is ~17× cheaper and the fast tier ~50× cheaper.
 
