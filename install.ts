@@ -18,13 +18,15 @@ import { homedir } from 'os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+type PackageJson = { version: string };
+
 const args = process.argv.slice(2);
 const command = args[0];
 const isGlobal = args.includes('-g') || args.includes('--global');
 
 // Handle version command
 if (command === 'version' || command === '-v' || command === '--version') {
-  const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+  const pkg: PackageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
   console.log(`opencode-kit v${pkg.version}`);
   process.exit(0);
 }
@@ -56,7 +58,7 @@ const folders = ['agents', 'commands', 'plugins', 'skills'];
 const isUpdate = folders.some(folder => existsSync(join(targetDir, folder)));
 
 // Get version from package.json
-const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
+const pkg: PackageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
 const version = pkg.version;
 
 // Copy folders silently

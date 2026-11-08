@@ -13,6 +13,6 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["plugins/**/*.ts", "tests/**/*.ts", "install.sh"],
+  "include": ["plugins/**/*.ts", "tests/**/*.ts", "install.ts"],
   "exclude": ["node_modules"]
 }

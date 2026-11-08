@@ -17,7 +17,8 @@
   "scripts": {
     "test": "bun test",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepack": "bun build ./install.ts --target node --outfile ./install.js"
   },
   "dependencies": {
     "@opencode/plugin": "2.0.23",
