@@ -160,7 +160,7 @@ function firstString(...values: unknown[]): string | undefined {
 
 // Package metadata used by the update check
 const PACKAGE_NAME = "@fiandev/opencode-kit"
-const CURRENT_VERSION = "1.1.0"
+const CURRENT_VERSION = "1.2.0"
 
 // Free-tier fallback used when an opencode-go model is unavailable or rate-limited.
 const FALLBACK_MODEL = "opencode-go/deepseek-v4.1-flash-free"

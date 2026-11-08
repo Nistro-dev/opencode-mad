@@ -7,13 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-08
+
 ### Added
 
-- `committer` subagent: `/commit` now delegates staging and committing to it, with `git commit` gated by `ask` and push/amend/rebase/reset/tag denied.
+- `committer` subagent: `/commit` now delegates staging and committing to it, with `git commit` gated by `ask` and push/amend/rebase/reset/tag denied. `git add -A`, `git add --all`, and `git add .` are blocked, and secrets, `node_modules`, and build output are never staged.
+- `AGENTS.md` project guide and `CLAUDE.md` pointer for contributors.
 
 ### Changed
 
+- Every shipped subagent now denies unknown bash commands by default and enumerates the read, git, and build commands its role needs, instead of a `"*": allow` wildcard. Installs and state-changing git commands are `ask`; force pushes, `git filter-branch`, remote rewrites, and `curl | sh` are `deny`.
 - `/commit` is read-only for the orchestrator; all git writes go through the `committer` subagent.
+
+### Security
+
+- Subagents can no longer bypass file-ownership rules with `rm`, `mv`, or shell redirection via a wildcard bash permission.
 
 ## [1.1.0] - 2026-11-08
 
@@ -40,5 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Worktree cleanup/done/blocked tools use direct filesystem and command execution instead of shell interpolation.
 - Read-only agents can no longer create or move tags.
 
-[Unreleased]: https://github.com/fiandev/opencode-kit/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/fiandev/opencode-kit/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/fiandev/opencode-kit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fiandev/opencode-kit/compare/v1.0.0...v1.1.0
