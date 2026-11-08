@@ -4,6 +4,8 @@ node_modules/
 # Build outputs
 dist/
 *.log
+install.js
+tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
