@@ -1,15 +1,15 @@
 ---
-description: Visualize the MAD workflow status with ASCII art dashboard
+description: Visualize the workflow status with ASCII art dashboard
 agent: orchestrator
 ---
 
-# MAD Workflow Visualization
+# Workflow Visualization
 
-Show me a visual ASCII art dashboard of the current MAD orchestration status.
+Show me a visual ASCII art dashboard of the current orchestration status.
 
 ## Instructions
 
-Use the `mad_status` tool to get the current state of all worktrees, then create a beautiful ASCII visualization showing:
+Use the `status` tool to get the current state of all worktrees, then create a beautiful ASCII visualization showing:
 
 1. **Overall Progress Bar** - Percentage of completed tasks
 2. **Worktree Status** - Each worktree with its status icon and details
@@ -22,7 +22,7 @@ Format the output as a nice ASCII art dashboard with boxes, icons, and progress 
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│              MAD ORCHESTRATION DASHBOARD                       │
+│                ORCHESTRATION DASHBOARD                         │
 └────────────────────────────────────────────────────────────────┘
 
 📊 Progress: [████████████░░░░░░░░] 60% (3/5 tasks complete)
@@ -87,6 +87,7 @@ Format the output as a nice ASCII art dashboard with boxes, icons, and progress 
 ## Customization
 
 You can customize the visualization based on:
+
 - Number of worktrees
 - Status distribution
 - Available terminal width

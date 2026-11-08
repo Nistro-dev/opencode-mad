@@ -1,11 +1,11 @@
 {
-  "name": "opencode-mad",
-  "version": "1.0.5",
-  "description": "Multi-Agent Dev - Parallel development orchestration plugin for OpenCode",
+  "name": "@fiandev/opencode-kit",
+  "version": "1.0.0",
+  "description": "opencode kit to give super ability for your harness",
   "type": "module",
-  "main": "plugins/mad-plugin.ts",
+  "main": "plugins/main.ts",
   "bin": {
-    "opencode-mad": "./install.js"
+    "opencode-kit": "./install.js"
   },
   "files": [
     "agents",
@@ -15,7 +15,7 @@
     "install.js"
   ],
   "dependencies": {
-    "@opencode-ai/plugin": "^1.1.34"
+    "@opencode-ai/plugin": "^1.19.5"
   },
   "keywords": [
     "opencode",
@@ -26,11 +26,15 @@
     "ai",
     "orchestration"
   ],
-  "author": "Nistro-dev",
+  "author": "fiandev",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Nistro-dev/opencode-mad"
+    "url": "https://github.com/fiandev/opencode-kit"
   },
-  "homepage": "https://github.com/Nistro-dev/opencode-mad#readme"
+  "homepage": "https://github.com/fiandev/opencode-kit#readme",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
 }

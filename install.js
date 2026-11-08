@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * opencode-mad installer
+ * opencode-kit installer
  * 
  * Usage:
- *   npx opencode-mad install        # Install to current project (.opencode/)
- *   npx opencode-mad install -g     # Install globally (~/.config/opencode/)
- *   npx opencode-mad update         # Update in current project (alias for install)
- *   npx opencode-mad update -g      # Update globally (alias for install -g)
- *   npx opencode-mad version        # Show version
+ *   npx @fiandev/opencode-kit install        # Install to current project (.opencode/)
+ *   npx @fiandev/opencode-kit install -g     # Install globally (~/.config/opencode/)
+ *   npx @fiandev/opencode-kit update         # Update in current project (alias for install)
+ *   npx @fiandev/opencode-kit update -g      # Update globally (alias for install -g)
+ *   npx @fiandev/opencode-kit version        # Show version
  */
 
 import { cpSync, existsSync, mkdirSync, readFileSync } from 'fs';
@@ -25,28 +25,28 @@ const isGlobal = args.includes('-g') || args.includes('--global');
 // Handle version command
 if (command === 'version' || command === '-v' || command === '--version') {
   const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
-  console.log(`opencode-mad v${pkg.version}`);
+  console.log(`opencode-kit v${pkg.version}`);
   process.exit(0);
 }
 
 // 'update' is an alias for 'install'
 if (command !== 'install' && command !== 'update') {
   console.log(`
-opencode-mad - Multi-Agent Dev plugin for OpenCode
+opencode-kit - Multi-Agent Dev plugin for OpenCode
 
 Usage:
-  npx opencode-mad install        Install to current project (.opencode/)
-  npx opencode-mad install -g     Install globally (~/.config/opencode/)
-  npx opencode-mad update         Update in current project (alias for install)
-  npx opencode-mad update -g      Update globally (alias for install -g)
-  npx opencode-mad version        Show version
+  npx @fiandev/opencode-kit install        Install to current project (.opencode/)
+  npx @fiandev/opencode-kit install -g     Install globally (~/.config/opencode/)
+  npx @fiandev/opencode-kit update         Update in current project (alias for install)
+  npx @fiandev/opencode-kit update -g      Update globally (alias for install -g)
+  npx @fiandev/opencode-kit version        Show version
 
-More info: https://github.com/Nistro-dev/opencode-mad
+More info: https://github.com/fiandev/opencode-kit
 `);
   process.exit(0);
 }
 
-const targetDir = isGlobal 
+const targetDir = isGlobal
   ? join(homedir(), '.config', 'opencode')
   : join(process.cwd(), '.opencode');
 
@@ -63,9 +63,9 @@ const version = pkg.version;
 for (const folder of folders) {
   const src = join(__dirname, folder);
   const dest = join(targetDir, folder);
-  
+
   if (!existsSync(src)) continue;
-  
+
   mkdirSync(dest, { recursive: true });
   cpSync(src, dest, { recursive: true });
 }
@@ -73,4 +73,4 @@ for (const folder of folders) {
 // Single line output
 const action = isUpdate ? 'updated' : 'installed';
 const location = isGlobal ? '~/.config/opencode' : '.opencode';
-console.log(`opencode-mad v${version} ${action} to ${location}`);
+console.log(`opencode-kit v${version} ${action} to ${location}`);

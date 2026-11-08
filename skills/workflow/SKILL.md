@@ -1,6 +1,6 @@
 ---
-name: mad-workflow
-description: Multi-Agent Dev workflow for parallel development with git worktrees and specialized agents
+name: workflow
+description: workflow for parallel development with git worktrees and specialized agents
 license: MIT
 compatibility: opencode
 metadata:
@@ -8,9 +8,9 @@ metadata:
   author: Nistro-dev
 ---
 
-# MAD Workflow
+# Workflow
 
-MAD (Multi-Agent Dev) enables parallel software development by decomposing tasks into independent subtasks, each running in isolated git worktrees with dedicated specialized agents.
+enables parallel software development by decomposing tasks into independent subtasks, each running in isolated git worktrees with dedicated specialized agents.
 
 ## Architecture
 
@@ -33,16 +33,16 @@ DEVELOPER 1    DEVELOPER 2    DEVELOPER 3
 
 ## Specialized Agents
 
-| Agent | Role |
-|-------|------|
-| **mad-analyste** | Understands codebase, finds patterns |
-| **mad-architecte** | Creates task breakdown, file ownership |
-| **mad-developer** | Writes code in isolated worktrees |
-| **mad-tester** | Runs tests, verifies functionality |
-| **mad-reviewer** | Checks quality, best practices |
-| **mad-security** | Audits for vulnerabilities |
-| **mad-fixer** | Fixes errors, test failures |
-| **mad-merger** | Resolves git merge conflicts |
+| Agent          | Role                                   |
+| -------------- | -------------------------------------- |
+| **analyst**    | Understands codebase, finds patterns   |
+| **architecte** | Creates task breakdown, file ownership |
+| **developer**  | Writes code in isolated worktrees      |
+| **tester**     | Runs tests, verifies functionality     |
+| **reviewer**   | Checks quality, best practices         |
+| **security**   | Audits for vulnerabilities             |
+| **fixer**      | Fixes errors, test failures            |
+| **merger**     | Resolves git merge conflicts           |
 
 ## Signal Files
 
@@ -66,6 +66,7 @@ DEVELOPER 1    DEVELOPER 2    DEVELOPER 3
 **The entire purpose of MAD is to run tasks IN PARALLEL.**
 
 All independent operations MUST be in a single message:
+
 - Create all worktrees together
 - Spawn all developers together
 - Run all QA agents together
@@ -87,36 +88,39 @@ Task 3: OWNS /package.json, /README.md
 **CRITICAL: Subagents MUST NOT output verbose commentary.**
 
 ### Rules for Subagents:
+
 1. **No status updates** - Don't say "I'm now going to..."
 2. **No explanations** - Don't explain what you're doing
 3. **No summaries** - Don't summarize at the end
 4. **Actions only** - Just execute tools and complete the task
-5. **Signal via tools** - Use `mad_done` or `mad_blocked` to communicate
+5. **Signal via tools** - Use `done` or `blocked` to communicate
 
 ### Why?
+
 - Reduces token usage dramatically
 - Speeds up execution
-- Orchestrator monitors via `mad_status`, not agent output
+- Orchestrator monitors via `status`, not agent output
 
 ### Orchestrator Exception:
+
 The orchestrator MAY output status to keep the user informed, but should remain concise.
 
 ## Available Tools
 
-| Tool | Purpose |
-|------|---------|
-| `mad_worktree_create` | Create isolated branch |
-| `mad_status` | Dashboard of all worktrees |
-| `mad_visualize` | ASCII art visualization |
-| `mad_test` | Run tests on worktree |
-| `mad_merge` | Merge completed branch (uses --no-ff) |
-| `mad_cleanup` | Remove worktree |
-| `mad_done` | Mark task complete |
-| `mad_blocked` | Mark task blocked |
-| `mad_read_task` | Read task description |
-| `mad_register_agent` | Register agent permissions |
-| `mad_final_check` | Run global build/lint |
-| `mad_push_and_watch` | Push and watch CI |
+| Tool              | Purpose                               |
+| ----------------- | ------------------------------------- |
+| `worktree_create` | Create isolated branch                |
+| `status`          | Dashboard of all worktrees            |
+| `visualize`       | ASCII art visualization               |
+| `test`            | Run tests on worktree                 |
+| `merge`           | Merge completed branch (uses --no-ff) |
+| `cleanup`         | Remove worktree                       |
+| `done`            | Mark task complete                    |
+| `blocked`         | Mark task blocked                     |
+| `read_task`       | Read task description                 |
+| `register_agent`  | Register agent permissions            |
+| `final_check`     | Run global build/lint                 |
+| `push_and_watch`  | Push and watch CI                     |
 
 ## Best Practices
 

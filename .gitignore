@@ -9,12 +9,12 @@ dist/
 .DS_Store
 Thumbs.db
 
-# MAD agent files (never commit)
+# Agent files (never commit)
 .agent-task
 .agent-done
 .agent-blocked
 .agent-error
-.mad-logs.jsonl
+.agent-logs.jsonl
 
 # Worktrees directory
 worktrees/
@@ -27,3 +27,4 @@ worktrees/
 .env
 
 .opencode
+.agent-review
