@@ -62,9 +62,9 @@ git tag --list --sort=-version:refname | head -20
 
 Spawn the **`version-analyzer`** subagent. Pass every relevant flag and this instruction:
 
-> Resolve the baseline from local tags and the chosen remote. Fetch tags when permitted.
-> Analyze the full range, recommend the next semver, and report the handoff fields. Do not
-> edit anything.
+> Resolve the baseline from local tags and all configured remotes (or only the chosen
+> remote). Fetch tags when permitted. Analyze the full range, recommend the next semver, and
+> report the handoff fields. Do not edit anything.
 
 Wait for its report. Do not run your own full diff analysis.
 
@@ -91,9 +91,10 @@ Otherwise decide whether to apply:
 - Explicit `--bump` wins, even if it conflicts with the recommendation; still surface the
   warning.
 - Otherwise, use the recommended bump.
-- Ask for confirmation before applying when **any** of these is true:
-  - `--yes` was not passed, and
-  - no explicit `--bump` was passed, **or** the recommendation is `major`.
+- Ask for confirmation before applying when `--yes` was not passed and any of these is true:
+  - no explicit `--bump` (or `--major` / `--minor` / `--patch`) was given
+  - the recommended bump is `major` and a lower bump was forced
+  - the analyzer says the manifest is already ahead of the tag
 - If the analyzer says the manifest is already ahead of the tag, do not double-bump; ask
   whether to keep the current version or force a specific bump.
 - If the user asked for a patch/minor but the analysis found breaking changes, warn clearly

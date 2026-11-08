@@ -151,7 +151,7 @@ Orchestrator: [Creates worktrees, spawns developers in parallel...]
 
 | Command           | Description                   |
 | ----------------- | ----------------------------- |
-| `/mad <task>`     | Start parallel orchestration  |
+| `/orchestration <task>` | Start parallel orchestration |
 | `/status`         | Show worktree status          |
 | `/visualize`      | ASCII dashboard               |
 | `/fix <worktree>` | Fix errors in a worktree      |
@@ -229,8 +229,8 @@ Safety defaults:
 - Dirty working tree → unrelated files are never committed, and a target manifest with
   pre-existing edits stops the update.
 - Existing tag → never moved, overwritten, or force-pushed.
-- No commit, tag, or push unless `--commit`, `--tag`, or `--push` is passed. `--push` requires
-  `--commit` or `--tag`.
+- No commit or tag unless `--commit` or `--tag` is passed. No push unless `--push` is passed,
+  and `--push` requires `--commit` or `--tag`.
 - `npm publish` and GitHub releases are always separate, explicit steps.
 - No commits since the baseline or no user-facing change → recommends `none` and stops.
 

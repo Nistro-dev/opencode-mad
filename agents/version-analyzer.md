@@ -37,7 +37,7 @@ are **READ-ONLY**: never edit files, never commit, never tag, never push.
 The task prompt may pass:
 
 - `--from=<ref>` or `--baseline=<ref>` — explicit baseline tag or commit
-- `--remote=<name>` — remote to inspect (default: `origin`, else the first remote)
+- `--remote=<name>` — restrict tag discovery to this remote (default: all remotes)
 - `--package=<path>` — manifest/directory to version (default: repository root)
 - `--bump=<major|minor|patch>` — explicit bump; still analyze and report it as the choice
 - `--first-release` — there is no baseline tag; analyze the full history
@@ -77,8 +77,8 @@ If it is not present locally, fetch just that tag from the chosen remote:
 git fetch "<remote>" "refs/tags/<tag>:refs/tags/<tag>"
 ```
 
-Try every configured remote before declaring the tag missing. Never create a tag and never
-force-update an existing one.
+Try every configured remote (or only the `--remote=<name>` when given) before declaring the
+tag missing. Never create a tag and never force-update an existing one.
 
 ### 2.2 Latest release tag
 
@@ -195,6 +195,9 @@ Candidates, in order:
 - `tauri.conf.json`
 - `app.json` / `manifest.json`
 - `VERSION`, `version.txt`, `.version`
+- Hardcoded version constants that mirror the package version (`CURRENT_VERSION`,
+  `APP_VERSION`, `__version__`, `const VERSION`) — search the source tree for the current
+  version in an assignment, not for every occurrence of the string
 
 Read both sides:
 

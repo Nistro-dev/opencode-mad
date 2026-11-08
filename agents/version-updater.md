@@ -88,10 +88,22 @@ Only these files may change:
 
 1. The manifest's own version field.
 2. A lockfile that records the project's own version.
-3. Secondary version files that clearly mirror the package version.
+3. Secondary version files and hardcoded version constants that clearly mirror the package
+   version (`VERSION`, `__version__`, `CURRENT_VERSION`, `APP_VERSION`, `const VERSION`).
 4. `CHANGELOG.md` when requested or already present.
 5. Internal workspace dependency pins, only when they refer to a package being bumped to the
    same version **and** are workspace-local. Report any other pin; do not rewrite it.
+
+Detect hardcoded constants by searching for the **old version in an assignment**, not for
+every occurrence of the string:
+
+```bash
+grep -RIn --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist \
+  -E "(CURRENT_VERSION|APP_VERSION|__version__|VERSION)[[:space:]]*[:=][[:space:]]*['\"]<old>['\"]" .
+```
+
+Update only exact version constants that mirror the package version. If a match is a
+dependency, example, fixture, or historical note, leave it alone and report it.
 
 Never update dependency versions, badges, examples, docs snippets, or arbitrary strings that
 happen to contain the old version.
