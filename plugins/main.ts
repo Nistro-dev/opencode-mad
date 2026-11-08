@@ -1,5 +1,5 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode/plugin"
+import { z } from "zod"
 import { readFileSync, existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, appendFileSync } from "fs"
 import { join, basename } from "path"
 import { execSync } from "child_process"
@@ -11,6 +11,19 @@ import { execSync } from "child_process"
  * The orchestrator agent decomposes tasks and delegates to developer subagents
  * running in parallel via OpenCode's Task tool.
  */
+
+/** A tool definition kept in the internal, Zod-based shape used by the plugin. */
+interface ToolDefinition<Args extends z.ZodRawShape = z.ZodRawShape> {
+  description: string
+  args: Args
+  execute: (args: z.infer<z.ZodObject<Args>>, context: unknown) => Promise<string>
+}
+
+/** Local `tool()` helper so tool definitions stay compact and typed. */
+const tool = Object.assign(
+  <Args extends z.ZodRawShape>(definition: ToolDefinition<Args>): ToolDefinition<Args> => definition,
+  { schema: z },
+)
 
 // Types for agent permissions (constraint enforcement)
 type AgentType =
@@ -24,6 +37,7 @@ type AgentType =
   | "merger"
   | "security"
   | "pentester"
+  | "typescript-engineer"
 
 /** Agents that must never modify files. */
 const READ_ONLY_AGENTS: readonly AgentType[] = [
@@ -143,11 +157,7 @@ const CURRENT_VERSION = "1.0.5"
 // Free-tier fallback used when an opencode-go model is unavailable or rate-limited.
 const FALLBACK_MODEL = "opencode-go/deepseek-v4.1-flash-free"
 
-/** True when a configured model reference belongs to the opencode-go provider. */
-const isOpenCodeGoModel = (model: unknown): model is string =>
-  typeof model === "string" && model.startsWith("opencode-go/")
-
-export const MultiAgentDevPlugin: Plugin = async ({ client, $, directory }) => {
+export const createPluginHooks = async ({ directory, log }: { directory: string; log?: (message: string) => void }) => {
 
   // Use the directory provided by OpenCode, fallback to process.cwd() for backwards compatibility
   const baseDirectory = directory || process.cwd()
@@ -520,13 +530,12 @@ Removes the worktree directory and prunes git worktree references.`,
             return `ERROR Not done (use force=true)`
           }
 
-          try {
-            await $`git worktree remove ${worktreePath} --force`
-            await $`git worktree prune`
-            return `OK Cleaned: ${args.worktree}`
-          } catch (error: unknown) {
-            return `ERROR ${errorMessage(error)}`
+          const removeResult = runCommand(`git worktree remove "${worktreePath}" --force`, gitRoot)
+          if (!removeResult.success) {
+            return `ERROR ${removeResult.error}`
           }
+          runCommand("git worktree prune", gitRoot)
+          return `OK Cleaned: ${args.worktree}`
         },
       }),
 
@@ -548,8 +557,11 @@ Use this when you've finished implementing the task in a worktree.`,
             return `ERROR Not found: ${args.worktree}`
           }
 
-          await $`echo ${args.summary} > ${join(worktreePath, ".agent-done")}`
-          await $`rm -f ${join(worktreePath, ".agent-error")} ${join(worktreePath, ".agent-blocked")}`
+          writeFileSync(join(worktreePath, ".agent-done"), `${args.summary}\n`)
+          for (const marker of [".agent-error", ".agent-blocked"]) {
+            const markerPath = join(worktreePath, marker)
+            if (existsSync(markerPath)) unlinkSync(markerPath)
+          }
 
           return `OK Done: ${args.worktree}`
         },
@@ -573,7 +585,7 @@ Use this when you cannot proceed due to missing information or dependencies.`,
             return `ERROR Not found: ${args.worktree}`
           }
 
-          await $`echo ${args.reason} > ${join(worktreePath, ".agent-blocked")}`
+          writeFileSync(join(worktreePath, ".agent-blocked"), `${args.reason}\n`)
 
           return `BLOCKED Blocked: ${args.worktree}`
         },
@@ -862,7 +874,7 @@ The plugin will then BLOCK any unauthorized actions.`,
           sessionID: tool.schema.string().describe("The session ID of the agent"),
           agentType: tool.schema.enum([
             "orchestrator", "analyst", "architect", "developer",
-            "tester", "reviewer", "fixer", "merger", "security", "pentester",
+            "tester", "reviewer", "fixer", "merger", "security", "pentester", "typescript-engineer"
           ]).describe("Type of agent"),
           worktree: tool.schema.string().optional().describe("Worktree path if applicable"),
           allowedPaths: tool.schema.array(tool.schema.string()).optional().describe("Paths the agent can edit (glob patterns)"),
@@ -1167,36 +1179,23 @@ Called by the Security agent after scanning for vulnerabilities.`,
           return `Security: ${riskLevel} (${vulnCount} vulns, ${depCount} deps)`
         }
       }),
-    },
+    } as unknown as Record<string, ToolDefinition>,
 
     // Event hooks
-    event: async ({ event }) => {
+    event: async ({ event }: { event: { type: string } }) => {
       // Log orchestration events for debugging
       if (event.type === "session.idle") {
-        await client.app.log({
-          body: {
-            service: "opencode-kit",
-            level: "debug",
-            message: "Session idle",
-          },
-        })
-      }
-    },
-
-    // Give every opencode-go agent the free-tier DeepSeek fallback
-    config: async (config) => {
-      for (const agent of Object.values(config.agent ?? {})) {
-        if (!agent || !isOpenCodeGoModel(agent.model)) continue
-        if (agent.fallback_model === undefined) {
-          agent.fallback_model = FALLBACK_MODEL
-        }
+        log?.("Session idle")
       }
     },
 
     // Send the fallback with each request so the router can recover automatically
-    "chat.params": async (input, output) => {
+    "chat.params": async (
+      input: { model: { providerID: string } },
+      output: { options: Record<string, unknown> },
+    ) => {
       if (input.model.providerID !== "opencode-go") return
-      output.options = { ...output.options, fallback_model: FALLBACK_MODEL }
+      output.options.fallback_model = FALLBACK_MODEL
     },
 
     // Enforce agent constraints before tool execution
@@ -1273,5 +1272,78 @@ Called by the Security agent after scanning for vulnerabilities.`,
   }
 }
 
-// Default export for OpenCode plugin system
+/**
+ * OpenCode V2 plugin definition.
+ *
+ * V2 loads plugins through `Plugin.define({ id, setup })`. Setup registers the
+ * workflow tools, the tool guard hook, the fallback request hook, and the event
+ * subscription. The implementation lives in `createPluginHooks` so it can be
+ * exercised without a running server.
+ */
+export const MultiAgentDevPlugin = Plugin.define({
+  id: "fiandev.opencode-kit",
+  async setup(ctx) {
+    const hooks = await createPluginHooks({
+      directory: ctx.location.directory,
+      log: (message) => console.debug(`[opencode-kit] ${message}`),
+    })
+
+    const tools = Object.entries(hooks.tool).map(([name, definition]) => ({
+      name,
+      definition,
+      input: z.toJSONSchema(z.object(definition.args), { io: "input" }),
+    }))
+
+    await ctx.tool.transform((editor) => {
+      for (const { name, definition, input } of tools) {
+        editor.add({
+          name,
+          description: definition.description,
+          input,
+          async execute(args) {
+            return { content: await definition.execute(args as never, {} as never) }
+          },
+        })
+      }
+    })
+
+    const before = hooks["tool.execute.before"]
+    if (before) {
+      await ctx.tool.hook("execute.before", async (event) => {
+        const args = (event.input && typeof event.input === "object" ? event.input : {}) as Record<string, unknown>
+        await before(
+          { tool: event.tool, sessionID: event.sessionID, callID: event.id },
+          { args },
+        )
+        if (event.input !== args) event.input = args
+      })
+    }
+
+    const chatParams = hooks["chat.params"]
+    if (chatParams) {
+      await ctx.session.hook(
+        "context",
+        (event) => chatParams({ model: event.model }, event),
+        { providerID: "opencode-go" },
+      )
+    }
+
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+          await hooks.event?.({ event })
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("opencode-kit: event subscription failed", error)
+        }
+      }
+    })()
+
+    return () => controller.abort()
+  },
+})
+
+// Default export for the OpenCode V2 plugin system
 export default MultiAgentDevPlugin

@@ -432,7 +432,7 @@ The pentester agent will:
 
 ## Requirements
 
-- [OpenCode](https://opencode.ai) 1.19.5+ (matches the `@opencode-ai/plugin` dependency)
+- [OpenCode](https://opencode.ai) 2.0.23+ (matches the `@opencode/plugin` dependency)
 - Git (for worktrees)
 - Node.js 18+
 - **For pentesting**: nmap, nikto, sqlmap, curl, plus optional nuclei, httpx, ffuf, and gobuster

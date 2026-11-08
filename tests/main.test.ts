@@ -11,9 +11,9 @@ import {
 } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import MultiAgentDevPlugin, { MultiAgentDevPlugin as NamedExport } from "../plugins/main"
+import MultiAgentDevPluginDefault, { createPluginHooks, MultiAgentDevPlugin } from "../plugins/main"
 
-type Hooks = Awaited<ReturnType<typeof MultiAgentDevPlugin>>
+type Hooks = Awaited<ReturnType<typeof createPluginHooks>>
 type Tool = NonNullable<Hooks["tool"]>[string]
 
 /** Loosely-typed view of a tool so tests can call execute without Zod inference. */
@@ -36,24 +36,6 @@ afterEach(() => {
   }
 })
 
-/** Quote a value the way Bun's `$` shell would, so the mock behaves like the real tag. */
-function quote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`
-}
-
-/** Minimal BunShell stand-in that runs the interpolated command through execSync. */
-function shellMock(cwd: string) {
-  return (strings: TemplateStringsArray, ...values: unknown[]) => {
-    const command = strings.reduce(
-      (acc, part, i) => acc + part + (i < values.length ? quote(String(values[i])) : ""),
-      "",
-    )
-    return Promise.resolve(
-      execSync(command, { cwd, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }),
-    )
-  }
-}
-
 async function setupRepo(options: { packageJson?: Record<string, unknown>; gitignore?: string } = {}): Promise<Harness> {
   const dir = mkdtempSync(join(tmpdir(), "opencode-kit-test-"))
   cleanups.push(dir)
@@ -68,14 +50,12 @@ async function setupRepo(options: { packageJson?: Record<string, unknown>; gitig
   execSync("git add -A && git commit -qm init", { cwd: dir })
 
   const logs: Harness["logs"] = []
-  const client = {
-    app: {
-      log: async (entry: Harness["logs"][number]) => {
-        logs.push(entry)
-      },
+  const hooks = await createPluginHooks({
+    directory: dir,
+    log: (message) => {
+      logs.push({ body: { service: "opencode-kit", level: "debug", message } })
     },
-  }
-  const hooks = await MultiAgentDevPlugin({ client, $: shellMock(dir), directory: dir } as never)
+  })
   return { dir, hooks, logs }
 }
 
@@ -102,8 +82,10 @@ async function createWorktree(hooks: Hooks, branch: string, task = "do the thing
 }
 
 describe("plugin registration", () => {
-  test("exports the plugin as both named and default export", () => {
-    assert.equal(MultiAgentDevPlugin, NamedExport)
+  test("exports a V2 plugin definition with a stable id and setup function", () => {
+    assert.equal(MultiAgentDevPlugin, MultiAgentDevPluginDefault)
+    assert.equal(MultiAgentDevPlugin.id, "fiandev.opencode-kit")
+    assert.equal(typeof MultiAgentDevPlugin.setup, "function")
   })
 
   test("registers every workflow tool", async () => {
@@ -594,21 +576,63 @@ describe("reporting tools", () => {
     )
   })
 
-  test("config hook adds the free-tier DeepSeek fallback to opencode-go agents", async () => {
-    const { hooks } = await setupRepo()
-    const config: { agent: Record<string, Record<string, unknown>> } = {
-      agent: {
-        developer: { model: "opencode-go/deepseek-v4.1-flash" },
-        foreign: { model: "other/provider" },
-        pinned: { model: "opencode-go/glm-5.3-flash", fallback_model: "opencode-go/pinned" },
+  test("V2 setup registers tools, the guard hook, and the fallback request hook", async () => {
+    const { dir } = await setupRepo()
+    const tools = new Map<string, { name: string; execute: (input: unknown, context?: unknown) => Promise<{ content?: unknown }> }>()
+    const toolHooks = new Map<string, (event: unknown) => Promise<void> | void>()
+    const sessionHooks = new Map<string, { callback: (event: unknown) => Promise<void> | void; options?: unknown }>()
+
+    const ctx = {
+      location: { directory: dir, project: { id: "project", directory: dir, canonical: dir } },
+      options: {},
+      tool: {
+        transform: async (callback: (editor: unknown) => void) => {
+          callback({
+            add: (definition: { name: string; execute: (input: unknown, context?: unknown) => Promise<{ content?: unknown }> }) => {
+              tools.set(definition.name, definition)
+            },
+          })
+          return { dispose: async () => {} }
+        },
+        hook: async (name: string, callback: (event: unknown) => Promise<void> | void) => {
+          toolHooks.set(name, callback)
+          return { dispose: async () => {} }
+        },
+      },
+      session: {
+        hook: async (
+          name: string,
+          callback: (event: unknown) => Promise<void> | void,
+          options?: unknown,
+        ) => {
+          sessionHooks.set(name, { callback, options })
+          return { dispose: async () => {} }
+        },
+      },
+      event: {
+        subscribe: async function* () {
+          return
+        },
       },
     }
 
-    await hooks.config?.(config as never)
+    const cleanup = await MultiAgentDevPlugin.setup(ctx as never)
 
-    assert.equal(config.agent.developer.fallback_model, "opencode-go/deepseek-v4.1-flash-free")
-    assert.equal("fallback_model" in config.agent.foreign, false)
-    assert.equal(config.agent.pinned.fallback_model, "opencode-go/pinned")
+    assert.equal(tools.size, 21)
+    assert.ok(toolHooks.has("execute.before"))
+    assert.ok(sessionHooks.has("context"))
+
+    const status = tools.get("status")
+    assert.ok(status)
+    assert.equal((await status.execute({}, {}))?.content, "No worktrees")
+
+    const contextHook = sessionHooks.get("context")!
+    assert.deepEqual(contextHook.options, { providerID: "opencode-go" })
+    const request = { model: { providerID: "opencode-go" }, options: {} as Record<string, unknown> }
+    await contextHook.callback(request)
+    assert.equal(request.options.fallback_model, "opencode-go/deepseek-v4.1-flash-free")
+
+    await cleanup?.()
   })
 
   test("chat.params hook sends fallback_model only for opencode-go", async () => {

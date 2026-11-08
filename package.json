@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.19.5"
+    "@opencode/plugin": "2.0.23",
+    "zod": "4.1.8"
   },
   "keywords": [
     "opencode",
