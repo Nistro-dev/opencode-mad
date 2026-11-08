@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `committer` subagent: `/commit` now delegates staging and committing to it, with `git commit` gated by `ask` and push/amend/rebase/reset/tag denied.
+
+### Changed
+
+- `/commit` is read-only for the orchestrator; all git writes go through the `committer` subagent.
+
 ## [1.1.0] - 2026-11-08
 
 > **Note:** this release contains breaking changes despite being a minor bump. See the

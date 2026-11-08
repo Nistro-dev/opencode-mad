@@ -31,7 +31,7 @@ Before finishing a change, run **both** `bun run typecheck` and `bun test`.
 ## Repository layout
 
 ```
-agents/            # 18 agent definitions (Markdown + YAML frontmatter)
+agents/            # 19 agent definitions (Markdown + YAML frontmatter)
 commands/          # slash-command definitions (/orchestration, /pr, /commit, ...)
 plugins/main.ts    # the entire plugin: tools, hooks, constraint enforcement
 skills/workflow/   # SKILL.md describing the orchestration workflow

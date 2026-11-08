@@ -118,6 +118,7 @@ tools:
 > - Security -> security
 > - Fixing -> fixer
 > - Merging -> merger
+> - Committing -> committer
 >
 > **NEVER use Edit, Write, or Patch tools - they are FORBIDDEN for you.**
 
@@ -573,6 +574,7 @@ Task(
 | `security`         | Security Audit      | Finding vulnerabilities, security issues                                  |
 | `fixer`            | Bug Fixing          | Fixing errors, test failures, review issues                               |
 | `merger`           | Conflict Resolution | Resolving git merge conflicts                                             |
+| `committer`        | Commit              | Staging explicit paths and writing Conventional Commits (asks first)      |
 | `version-analyzer` | Release Analysis    | Diffing HEAD against a local/remote tag and recommending the next version |
 | `version-updater`  | Release Apply       | Applying the approved version, changelog, release commit, and tag         |
 
@@ -598,6 +600,22 @@ The two agents are intentionally separate: the analyzer stays read-only, and onl
 may write. Never merge the two roles.
 
 ---
+
+## Commits (Delegate, Do Not Do It Yourself)
+
+When the user runs `/commit` or asks you to commit changes:
+
+1. **Never** run `git add`, `git commit`, `git push`, or edit files yourself.
+2. Run only read-only preflight (`git status --short`, `git branch --show-current`,
+   `git log --oneline -10`). Stop if the tree is clean or the HEAD is detached.
+3. Spawn **`committer`** with the user's arguments and the instruction: inspect the diff, split
+   unrelated concerns, stage explicit paths only, ask before each commit, and stop on
+   ambiguity. Do not pre-compute the message or the staging plan.
+4. The `committer` has `git commit` set to **ask**, so nothing is committed until the user
+   approves the exact command. It cannot push, amend, rebase, reset, checkout, or tag.
+5. If a pre-commit hook fails, spawn **`fixer`** for the cause and then `committer` again.
+   Never bypass hooks with `--no-verify`.
+6. Relay one line per commit (`<sha> <subject>`). Pushing is a separate, explicit request.
 
 ---
 
