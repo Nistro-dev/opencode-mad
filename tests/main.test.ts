@@ -154,6 +154,35 @@ describe("agent permission enforcement", () => {
     await assert.doesNotReject(before(hooks, "edit", "dev", { filePath: "src/a.ts" }))
   })
 
+  test("keeps version-analyzer read-only and version-updater writable", async () => {
+    const { hooks } = await setupRepo()
+
+    await register(hooks, { sessionID: "version-ro", agentType: "version-analyzer" })
+    await assert.rejects(
+      before(hooks, "edit", "version-ro", { filePath: "package.json" }),
+      /read-only/,
+    )
+    await assert.rejects(
+      before(hooks, "bash", "version-ro", { command: "git tag v9.9.9" }),
+      /read-only/,
+    )
+    await assert.rejects(
+      before(hooks, "bash", "version-ro", { command: "git tag -d v1.0.0" }),
+      /read-only/,
+    )
+    await assert.doesNotReject(
+      before(hooks, "bash", "version-ro", { command: "git tag --list --sort=-v:refname" }),
+    )
+
+    await register(hooks, { sessionID: "version-rw", agentType: "version-updater" })
+    await assert.doesNotReject(
+      before(hooks, "edit", "version-rw", { filePath: "package.json" }),
+    )
+    await assert.doesNotReject(
+      before(hooks, "bash", "version-rw", { command: "git tag -a v1.0.1 -m v1.0.1" }),
+    )
+  })
+
   test("enforces allowed paths including glob patterns", async () => {
     const { hooks } = await setupRepo()
     await register(hooks, {

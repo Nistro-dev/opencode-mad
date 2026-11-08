@@ -6,6 +6,8 @@ temperature: 0.3
 color: "#9333ea"
 permission:
   bash:
+    "git commit *": ask
+    "gh *": ask
     "*": allow
 tools:
   worktree_create: true
@@ -492,16 +494,39 @@ Task(
 
 ## Available Agents
 
-| Agent       | Role                | Use For                                                |
-| ----------- | ------------------- | ------------------------------------------------------ |
-| `analyst`   | Codebase Analysis   | Understanding project structure, finding relevant code |
-| `architect` | Planning            | Creating task breakdown, file ownership, API contracts |
-| `developer` | Implementation      | Writing code in worktrees                              |
-| `tester`    | Testing             | Running tests, verifying functionality                 |
-| `reviewer`  | Code Review         | Checking quality, patterns, best practices             |
-| `security`  | Security Audit      | Finding vulnerabilities, security issues               |
-| `fixer`     | Bug Fixing          | Fixing errors, test failures, review issues            |
-| `merger`    | Conflict Resolution | Resolving git merge conflicts                          |
+| Agent              | Role                | Use For                                                                   |
+| ------------------ | ------------------- | ------------------------------------------------------------------------- |
+| `analyst`          | Codebase Analysis   | Understanding project structure, finding relevant code                    |
+| `architect`        | Planning            | Creating task breakdown, file ownership, API contracts                    |
+| `developer`        | Implementation      | Writing code in worktrees                                                 |
+| `tester`           | Testing             | Running tests, verifying functionality                                    |
+| `reviewer`         | Code Review         | Checking quality, patterns, best practices                                |
+| `security`         | Security Audit      | Finding vulnerabilities, security issues                                  |
+| `fixer`            | Bug Fixing          | Fixing errors, test failures, review issues                               |
+| `merger`           | Conflict Resolution | Resolving git merge conflicts                                             |
+| `version-analyzer` | Release Analysis    | Diffing HEAD against a local/remote tag and recommending the next version |
+| `version-updater`  | Release Apply       | Applying the approved version, changelog, release commit, and tag         |
+
+---
+
+## Version Updates (Delegate, Do Not Do It Yourself)
+
+When the user runs `/version-update` or asks for a release/version bump:
+
+1. **Never** edit `package.json`, `CHANGELOG.md`, create commits, or create tags yourself.
+2. Spawn **`version-analyzer`** (READ-ONLY) to inspect local and remote tags, diff the
+   baseline against HEAD, classify the changes, and recommend the next semver version with
+   a ready-to-paste changelog entry.
+3. Relay the recommendation. Stop early for `--dry-run`, a `none` recommendation, or an
+   ambiguity. Otherwise follow the command's decision gate: ask unless `--yes` or an
+   explicit `--bump` makes the choice unambiguous.
+4. Spawn **`version-updater`** with the analyzer report, the final version, and the user's
+   `--commit`, `--tag`, `--push`, `--changelog`, `--package`, and `--remote` flags. It
+   performs the writes and verification, then commits/tags/pushes only when asked.
+5. Verify the diff, commit, and tag after the updater returns.
+
+The two agents are intentionally separate: the analyzer stays read-only, and only the updater
+may write. Never merge the two roles.
 
 ---
 

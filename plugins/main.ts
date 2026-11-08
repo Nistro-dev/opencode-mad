@@ -42,6 +42,8 @@ type AgentType =
   | "pr-reviewer"
   | "pr-resolver"
   | "conflict-resolver"
+  | "version-analyzer"
+  | "version-updater"
 
 /** Agents that must never modify files. */
 const READ_ONLY_AGENTS: readonly AgentType[] = [
@@ -53,6 +55,7 @@ const READ_ONLY_AGENTS: readonly AgentType[] = [
   "security",
   "pentester",
   "pr-reviewer",
+  "version-analyzer",
 ]
 
 interface AgentPermissions {
@@ -880,7 +883,8 @@ The plugin will then BLOCK any unauthorized actions.`,
           agentType: tool.schema.enum([
             "orchestrator", "analyst", "architect", "developer",
             "tester", "reviewer", "fixer", "merger", "security", "pentester", "typescript-engineer",
-            "pr", "pr-reviewer", "pr-resolver", "conflict-resolver"
+            "pr", "pr-reviewer", "pr-resolver", "conflict-resolver",
+            "version-analyzer", "version-updater"
           ]).describe("Type of agent"),
           worktree: tool.schema.string().optional().describe("Worktree path if applicable"),
           allowedPaths: tool.schema.array(tool.schema.string()).optional().describe("Paths the agent can edit (glob patterns)"),
@@ -1255,6 +1259,8 @@ Called by the Security agent after scanning for vulnerabilities.`,
           /\bnpm\s+install/,
           /\bgit\s+commit/,
           /\bgit\s+push/,
+          /\bgit\s+tag\s+(?:-a|-s|-d|-f|-u|-m|--delete|--force|--annotate|--sign)/,
+          /\bgit\s+tag\s+[^\s-]/,
         ]
 
         for (const pattern of dangerousPatterns) {

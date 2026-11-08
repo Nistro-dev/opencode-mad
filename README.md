@@ -2,7 +2,7 @@
 
 Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **11 specialized agents** and **hard constraints** enforced at the code level.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **18 specialized agents** and **hard constraints** enforced at the code level.
 
 ## What's New in v1.0.0
 
@@ -50,6 +50,8 @@ The orchestrator now **delegates** analysis and planning to specialized agents:
 - **Quality Gates** - Tester, Reviewer, and Security agents validate before merge
 - **Conflict Resolution** - Dedicated merger agent handles git conflicts
 - **Integration Fixes** - Fixer agent ensures everything works together
+- **Release Automation** - `/version-update` analyzes local and remote tags, recommends the
+  next semver version, and applies the bump and changelog (with optional commit, tag, and push)
 
 ## Installation
 
@@ -107,6 +109,8 @@ your-project/
 │   │   ├── pr-reviewer.md    # Reviews pull requests (READ-ONLY)
 │   │   ├── pr-resolver.md    # Fixes PR review feedback
 │   │   ├── conflict-resolver.md # Resolves git conflicts
+│   │   ├── version-analyzer.md # Analyzes diffs since a tag (READ-ONLY)
+│   │   ├── version-updater.md # Applies version + changelog (optional commit/tag)
 │   │   ├── merger.md         # Resolves workflow conflicts
 │   │   └── fixer.md          # Fixes integration
 │   ├── commands/
@@ -156,6 +160,7 @@ Orchestrator: [Creates worktrees, spawns developers in parallel...]
 | `/pr-review [pr]` | Review a pull request         |
 | `/pr-resolve [pr]`| Fix PR review comments        |
 | `/conflict-resolve [branch\|pr]` | Resolve git conflicts |
+| `/version-update [flags]` | Analyze the diff since a local/remote tag, then bump version + changelog |
 
 ### Pull Requests & Conflicts
 
@@ -189,6 +194,45 @@ repository, and never opens duplicate PRs in both places.
 They use the [GitHub CLI](https://cli.github.com); run `gh auth login` once before using
 them. The commands never force-push, never merge the PR, and never resolve a review thread
 whose code was not actually fixed.
+
+### Version Updates
+
+`/version-update` analyzes the diff between an existing tag and `HEAD`, then applies the
+resulting semver bump. Tags are discovered from local refs **and** from all configured
+remotes (or one remote when `--remote` is given), so a release tag that exists only on
+`origin` or `upstream` can still be the baseline.
+
+```bash
+/version-update                          # latest tag (local + origin), ask before applying
+/version-update --from=v1.4.0            # explicit baseline tag/ref
+/version-update --from=v1.4.0 --dry-run  # analyze only, change nothing
+/version-update --remote=upstream        # inspect only tags on another remote (and push there)
+/version-update minor                    # force the bump type
+/version-update --bump=major --yes       # force a major bump, skip the confirmation
+/version-update --package=packages/api   # version one package in a monorepo
+/version-update --first-release          # no baseline tag: analyze the full history
+/version-update --no-fetch               # local tags only, do not contact the remote
+/version-update --changelog              # create CHANGELOG.md when missing
+/version-update --commit --tag           # commit the bump and create the annotated tag
+/version-update --commit --tag --push    # also push the branch and tag
+```
+
+The work is split across two subagents on purpose:
+
+| Agent | Access | Responsibility |
+| --- | --- | --- |
+| `version-analyzer` | READ-ONLY | Resolves the baseline from local/remote tags, diffs it against `HEAD`, classifies breaking/feature/fix changes, recommends the next semver version, and drafts the changelog entry |
+| `version-updater` | Release files only | Applies the approved version across manifests, lockfiles, and `CHANGELOG.md`, verifies the diff, then optionally commits, tags, and pushes |
+
+Safety defaults:
+
+- Dirty working tree → unrelated files are never committed, and a target manifest with
+  pre-existing edits stops the update.
+- Existing tag → never moved, overwritten, or force-pushed.
+- No commit, tag, or push unless `--commit`, `--tag`, or `--push` is passed. `--push` requires
+  `--commit` or `--tag`.
+- `npm publish` and GitHub releases are always separate, explicit steps.
+- No commits since the baseline or no user-facing change → recommends `none` and stops.
 
 ### Reporting Bugs
 
@@ -317,8 +361,10 @@ BLOCKED Path denied: package.json
 | pr-reviewer  | Yes  | No   | Yes (git/gh)           | `**/*`                               |
 | pr-resolver  | Yes  | Yes  | Yes                    | PR review scope                      |
 | conflict-resolver | Yes | Yes | Yes                   | Conflicted files                     |
+| version-analyzer | Yes | No | Yes (git read-only)   | `**/*`                               |
+| version-updater | Yes | Yes | Yes (version files)   | Manifests + changelog                |
 
-> "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`) are blocked for read-only agents.
+> "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`, tag creation) are blocked for read-only agents.
 
 ### Developer File Ownership
 
@@ -355,6 +401,8 @@ This prevents merge conflicts and ensures clean parallel development.
 | `pr-reviewer`  | subagent | READ-ONLY         | Reviews pull requests and submits a verdict                               |
 | `pr-resolver`  | subagent | Scoped Write      | Fixes PR review comments, pushes, and resolves threads                    |
 | `conflict-resolver` | subagent | Conflict Write | Resolves merge, rebase, cherry-pick, and revert conflicts              |
+| `version-analyzer` | subagent | READ-ONLY    | Diffs HEAD against a local/remote tag, classifies changes, recommends the next semver version and changelog |
+| `version-updater` | subagent | Release Write | Applies the approved version across manifests, lockfiles, and CHANGELOG; optional commit/tag/push |
 
 ## Custom Tools
 
