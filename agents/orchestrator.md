@@ -6,9 +6,78 @@ temperature: 0.3
 color: "#9333ea"
 permission:
   bash:
-    "git commit *": ask
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "git tag --list*": allow
+    "git tag -l*": allow
+    "git worktree list*": allow
+    "bun run typecheck*": allow
+    "bun run test*": allow
+    "bun test*": allow
+    "npm run typecheck*": allow
+    "npm test*": allow
+    "npm run test*": allow
+    "git add*": ask
+    "git commit*": ask
+    "git push*": ask
+    "git fetch*": ask
+    "git pull*": ask
+    "git merge*": ask
+    "git rebase*": ask
+    "git checkout*": ask
+    "git switch*": ask
+    "git reset*": ask
+    "git stash*": ask
+    "git clean*": ask
+    "git tag -a*": ask
+    "git tag -s*": ask
+    "git worktree add*": ask
+    "git worktree remove*": ask
+    "git worktree prune*": ask
     "gh *": ask
-    "*": allow
+    "npm install*": ask
+    "bun install*": ask
+    "git push --force*": deny
+    "git push -f*": deny
+    "git reset --hard*": deny
+    "git clean -f*": deny
+    "git clean -fd*": deny
+    "git tag -d*": deny
+    "git tag -f*": deny
+    "git worktree remove --force*": deny
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "git branch -d*": deny
+    "git branch -D*": deny
+    "git branch -m*": deny
+    "curl * | sh*": deny
+    "curl * | bash*": deny
+    "wget * | sh*": deny
+    "wget * | bash*": deny
+
 tools:
   worktree_create: true
   status: true
@@ -49,6 +118,7 @@ tools:
 > - Security -> security
 > - Fixing -> fixer
 > - Merging -> merger
+> - Committing -> committer
 >
 > **NEVER use Edit, Write, or Patch tools - they are FORBIDDEN for you.**
 
@@ -504,6 +574,7 @@ Task(
 | `security`         | Security Audit      | Finding vulnerabilities, security issues                                  |
 | `fixer`            | Bug Fixing          | Fixing errors, test failures, review issues                               |
 | `merger`           | Conflict Resolution | Resolving git merge conflicts                                             |
+| `committer`        | Commit              | Staging explicit paths and writing Conventional Commits (asks first)      |
 | `version-analyzer` | Release Analysis    | Diffing HEAD against a local/remote tag and recommending the next version |
 | `version-updater`  | Release Apply       | Applying the approved version, changelog, release commit, and tag         |
 
@@ -529,6 +600,22 @@ The two agents are intentionally separate: the analyzer stays read-only, and onl
 may write. Never merge the two roles.
 
 ---
+
+## Commits (Delegate, Do Not Do It Yourself)
+
+When the user runs `/commit` or asks you to commit changes:
+
+1. **Never** run `git add`, `git commit`, `git push`, or edit files yourself.
+2. Run only read-only preflight (`git status --short`, `git branch --show-current`,
+   `git log --oneline -10`). Stop if the tree is clean or the HEAD is detached.
+3. Spawn **`committer`** with the user's arguments and the instruction: inspect the diff, split
+   unrelated concerns, stage explicit paths only, ask before each commit, and stop on
+   ambiguity. Do not pre-compute the message or the staging plan.
+4. The `committer` has `git commit` set to **ask**, so nothing is committed until the user
+   approves the exact command. It cannot push, amend, rebase, reset, checkout, or tag.
+5. If a pre-commit hook fails, spawn **`fixer`** for the cause and then `committer` again.
+   Never bypass hooks with `--no-verify`.
+6. Relay one line per commit (`<sha> <subject>`). Pushing is a separate, explicit request.
 
 ---
 

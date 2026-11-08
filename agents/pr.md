@@ -13,7 +13,55 @@ tools:
   ls: true
 permission:
   bash:
-    "*": allow
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "git ls-remote*": allow
+    "gh repo view*": allow
+    "gh pr list*": allow
+    "gh pr view*": allow
+    "gh pr diff*": allow
+    "gh pr checks*": allow
+    "gh pr status*": allow
+    "gh pr create*": ask
+    "gh pr edit*": ask
+    "git push*": ask
+    "git fetch*": ask
+    "git pull*": ask
+    "git push --force*": deny
+    "git push -f*": deny
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "git branch -d*": deny
+    "git branch -D*": deny
+    "git branch -m*": deny
+    "curl * | sh*": deny
+    "curl * | bash*": deny
+    "wget * | sh*": deny
+    "wget * | bash*": deny
+
 ---
 
 ## Communication Protocol

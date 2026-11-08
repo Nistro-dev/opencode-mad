@@ -2,7 +2,7 @@
 
 Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **18 specialized agents** and **hard constraints** enforced at the code level.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **19 specialized agents** and **hard constraints** enforced at the code level.
 
 ## What's New in v1.0.0
 
@@ -111,6 +111,7 @@ your-project/
 │   │   ├── conflict-resolver.md # Resolves git conflicts
 │   │   ├── version-analyzer.md # Analyzes diffs since a tag (READ-ONLY)
 │   │   ├── version-updater.md # Applies version + changelog (optional commit/tag)
+│   │   ├── committer.md      # Stages and commits changes (asks before commit)
 │   │   ├── merger.md         # Resolves workflow conflicts
 │   │   └── fixer.md          # Fixes integration
 │   ├── commands/
@@ -160,6 +161,7 @@ Orchestrator: [Creates worktrees, spawns developers in parallel...]
 | `/pr-review [pr]` | Review a pull request         |
 | `/pr-resolve [pr]`| Fix PR review comments        |
 | `/conflict-resolve [branch\|pr]` | Resolve git conflicts |
+| `/commit [hint\|paths]` | Stage and commit through the `committer` subagent |
 | `/version-update [flags]` | Analyze the diff since a local/remote tag, then bump version + changelog |
 
 ### Pull Requests & Conflicts
@@ -194,6 +196,24 @@ repository, and never opens duplicate PRs in both places.
 They use the [GitHub CLI](https://cli.github.com); run `gh auth login` once before using
 them. The commands never force-push, never merge the PR, and never resolve a review thread
 whose code was not actually fixed.
+
+### Commits
+
+`/commit` stages and commits changes with Conventional Commits messages. The orchestrator
+stays read-only; a dedicated `committer` subagent performs the git writes, so the permission
+gate lives in one place.
+
+```bash
+/commit                     # derive message and paths from the diff
+/commit fix parser crash    # message hint
+/commit src/parser.ts       # stage only these paths
+```
+
+Every `git commit` is set to `ask`, so the user approves the exact command and message before
+anything is written. Push, amend, rebase, reset, checkout, and tag are denied for the
+committer. `git add -A`, `git add --all`, and `git add .` are blocked, and secrets,
+`node_modules`, and build output are never staged. A failing pre-commit hook is reported back
+instead of bypassed with `--no-verify`.
 
 ### Version Updates
 
@@ -363,6 +383,7 @@ BLOCKED Path denied: package.json
 | conflict-resolver | Yes | Yes | Yes                   | Conflicted files                     |
 | version-analyzer | Yes | No | Yes (git read-only)   | `**/*`                               |
 | version-updater | Yes | Yes | Yes (version files)   | Manifests + changelog                |
+| committer    | Yes  | No   | Yes (git add/commit ask) | `**/*`                             |
 
 > "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`, tag creation) are blocked for read-only agents.
 
@@ -403,6 +424,7 @@ This prevents merge conflicts and ensures clean parallel development.
 | `conflict-resolver` | subagent | Conflict Write | Resolves merge, rebase, cherry-pick, and revert conflicts              |
 | `version-analyzer` | subagent | READ-ONLY    | Diffs HEAD against a local/remote tag, classifies changes, recommends the next semver version and changelog |
 | `version-updater` | subagent | Release Write | Applies the approved version across manifests, lockfiles, and CHANGELOG; optional commit/tag/push |
+| `committer`    | subagent | Commit (asks) | Stages explicit paths and creates Conventional Commits; asks before every commit |
 
 ## Custom Tools
 

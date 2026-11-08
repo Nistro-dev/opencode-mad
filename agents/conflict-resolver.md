@@ -16,7 +16,66 @@ tools:
   ls: true
 permission:
   bash:
-    "*": allow
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "test *": allow
+    "git add*": allow
+    "git commit*": allow
+    "git merge*": allow
+    "git rebase*": allow
+    "git cherry-pick*": allow
+    "git revert*": allow
+    "git fetch*": allow
+    "GIT_EDITOR=true git rebase*": allow
+    "GIT_EDITOR=true git cherry-pick*": allow
+    "GIT_EDITOR=true git revert*": allow
+    "npm install*": ask
+    "bun install*": ask
+    "git push*": ask
+    "git pull*": ask
+    "git checkout*": ask
+    "git switch*": ask
+    "git reset*": ask
+    "git stash*": ask
+    "git clean*": ask
+    "git push --force*": deny
+    "git push -f*": deny
+    "git reset --hard*": deny
+    "git clean -f*": deny
+    "git clean -fd*": deny
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "git branch -d*": deny
+    "git branch -D*": deny
+    "git branch -m*": deny
+    "curl * | sh*": deny
+    "curl * | bash*": deny
+    "wget * | sh*": deny
+    "wget * | bash*": deny
+
 ---
 
 ## Communication Protocol

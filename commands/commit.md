@@ -1,62 +1,68 @@
 ---
-description: Stage and commit changes in a worktree (Conventional Commits)
+description: Stage and commit changes through the committer subagent (Conventional Commits)
 agent: orchestrator
 ---
 
 # Commit
 
-Optional arguments: $ARGUMENTS may be a message hint and/or paths to stage. If empty, derive both from the diff.
+Optional arguments: `$ARGUMENTS` may be a message hint and/or paths to stage. If empty, the
+committer derives both from the diff.
 
-## Steps
+You are **read-only** in this command: never run `git add`, `git commit`, `git push`, or edit
+files yourself. Every git write is delegated to the **`committer` subagent**, whose permissions
+ask before each commit and deny push, amend, rebase, reset, checkout, and tag.
 
-1. **Inspect** (run in parallel):
-   - `git status --short`
-   - `git diff` and `git diff --cached`
-   - `git log --oneline -10` — match the repo's existing type/scope style
-2. **Split**: if the changes cover unrelated concerns, make one commit per concern. Don't mix a refactor with a feature.
-3. **Stage explicitly**: `git add <path> [<path>...]`. Use `git add -A` only when every change belongs in the same commit. Never stage secrets (`.env`, keys, tokens), `node_modules`, or build output.
-4. **Commit** with a message that follows the format below. Use a heredoc for multi-line messages:
-   ```bash
-   git commit -m "$(cat <<'EOF'
-   feat(parser): add array parsing support
+## Phase 1 — Preflight (read-only)
 
-   Parses bracketed values produced by the new config loader.
+Run in parallel:
 
-   Refs: #123
-   EOF
-   )"
-   ```
-5. **Verify**: `git log -1 --stat` and `git status --short` (clean, or only intentionally unstaged files).
-
-## Message format
-
-```
-<type>[(scope)][!]: <description>
-
-[optional body]
-
-[optional footer(s)]
+```bash
+git rev-parse --show-toplevel
+git branch --show-current
+git status --short
+git log --oneline -10
 ```
 
-- Description: imperative mood, lowercase, no trailing period, ≤ 72 chars.
-- Types: `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`
-- Breaking change: append an exclamation mark before the colon (`feat!:` or `feat(api)!:`) **and** add a `BREAKING CHANGE: <what broke + how to migrate>` footer.
-- Body: one blank line after the description, wrapped at 72, explain **why** not **what**.
-- Footers: `Token: value` or `Token #value` (e.g. `Refs: #123`, `Reviewed-by: Z`).
+Stop and report when:
 
-Examples:
+- this is not a git repository
+- the branch is detached — ask the user to check out a branch first
+- there is nothing to commit (clean tree and nothing staged) — say so and stop
+- a path named in `$ARGUMENTS` does not exist
 
+## Phase 2 — Delegate
+
+Spawn the **`committer`** subagent with `$ARGUMENTS` verbatim (or "no arguments" when empty)
+and this instruction:
+
+> Follow your Committer workflow. Inspect the diff, split unrelated concerns into separate
+> commits, stage explicit paths only, and ask before committing. Stop and report on ambiguity,
+> secrets, a detached HEAD, or a failing pre-commit hook. Do not push, tag, amend, or rebase.
+
+Do not pre-compute the commit message or the staging plan yourself. The subagent owns that
+decision.
+
+## Phase 3 — Handle the result
+
+Relay the committer's report.
+
+- **Hook failure** → do not bypass with `--no-verify`; spawn the **`fixer`** subagent when the
+  fix is code, then spawn the committer again for the remaining changes.
+- **`Nothing to commit`** → say so and stop.
+- **Blocked** (secret, ambiguity, detached HEAD) → relay it and ask the user how to proceed.
+
+## Phase 4 — Verify (read-only)
+
+```bash
+git log -1 --stat
+git status --short
 ```
-fix: prevent racing of requests
-docs(readme): correct install command
-feat(api)!: drop Node 6 support
 
-BREAKING CHANGE: minimum runtime is now Node 18.
-```
+Report one line per commit: `<sha> <subject>`, then the remaining working-tree state.
 
 ## Rules
 
-- Never amend, rebase, or push unless asked.
-- If a pre-commit hook fails, fix the cause and create a new commit. Don't use `--no-verify` unless asked.
-- If there is nothing to commit, say so and stop.
-- Report one line: `<sha> <subject>`.
+- The orchestrator never commits; only the `committer` subagent may run `git add`/`git commit`.
+- Never amend, rebase, or push unless the user asks.
+- Never use `--no-verify`.
+- Never commit secrets (`.env`, keys, tokens), `node_modules`, or build output.
