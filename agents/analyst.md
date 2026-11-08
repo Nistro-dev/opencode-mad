@@ -18,7 +18,40 @@ tools:
   patch: false
 permission:
   bash:
-    "*": allow
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "jq*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "git tag --list*": allow
+    "git tag -l*": allow
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "git branch -d*": deny
+    "git branch -D*": deny
+    "git branch -m*": deny
+
 ---
 
 ## Communication Protocol

@@ -18,7 +18,95 @@ tools:
   edit: true
 permission:
   bash:
-    "*": allow
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "git add*": allow
+    "git commit*": allow
+    "npm test*": allow
+    "npm run test*": allow
+    "npm run lint*": allow
+    "npm run build*": allow
+    "npm run typecheck*": allow
+    "npm run type-check*": allow
+    "bun test*": allow
+    "bun run test*": allow
+    "bun run lint*": allow
+    "bun run build*": allow
+    "bun run typecheck*": allow
+    "bun run format*": allow
+    "npx tsc*": allow
+    "bunx tsc*": allow
+    "tsc *": allow
+    "node --check*": allow
+    "sleep *": allow
+    "curl http://localhost*": allow
+    "curl https://localhost*": allow
+    "curl http://127.0.0.1*": allow
+    "curl https://127.0.0.1*": allow
+    "npm install*": ask
+    "npm ci*": ask
+    "npm start*": ask
+    "npm run dev*": ask
+    "bun install*": ask
+    "bun run dev*": ask
+    "pnpm install*": ask
+    "pnpm run*": ask
+    "yarn install*": ask
+    "yarn run*": ask
+    "git push*": ask
+    "git fetch*": ask
+    "git pull*": ask
+    "git merge*": ask
+    "git rebase*": ask
+    "git checkout*": ask
+    "git switch*": ask
+    "git reset*": ask
+    "git stash*": ask
+    "git clean*": ask
+    "docker *": ask
+    "python*": ask
+    "kill %*": ask
+    "curl * -o *": deny
+    "curl * --output*": deny
+    "git push --force*": deny
+    "git push -f*": deny
+    "git reset --hard*": deny
+    "git clean -f*": deny
+    "git clean -fd*": deny
+    "git filter-branch*": deny
+    "git tag -d*": deny
+    "git tag -f*": deny
+    "git branch -D*": deny
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "curl * | sh*": deny
+    "curl * | bash*": deny
+    "wget * | sh*": deny
+    "wget * | bash*": deny
+
 ---
 
 ## Communication Protocol

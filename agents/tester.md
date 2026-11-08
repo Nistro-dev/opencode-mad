@@ -14,7 +14,63 @@ tools:
   read: true
 permission:
   bash:
-    "*": allow
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "node --check*": allow
+    "npm test*": allow
+    "npm run test*": allow
+    "npm run lint*": allow
+    "npm run build*": allow
+    "npm run typecheck*": allow
+    "npm run type-check*": allow
+    "bun test*": allow
+    "bun run test*": allow
+    "bun run lint*": allow
+    "bun run build*": allow
+    "bun run typecheck*": allow
+    "npx tsc*": allow
+    "bunx tsc*": allow
+    "tsc *": allow
+    "pytest*": allow
+    "go test*": allow
+    "cargo test*": allow
+    "npm install*": ask
+    "npm ci*": ask
+    "npm start*": ask
+    "npm run dev*": ask
+    "bun install*": ask
+    "bun run dev*": ask
+    "pnpm install*": ask
+    "yarn install*": ask
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "git branch -d*": deny
+    "git branch -D*": deny
+    "git branch -m*": deny
+
 ---
 
 ## Communication Protocol

@@ -20,11 +20,70 @@ tools:
   ls: true
 permission:
   bash:
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "git add*": allow
+    "git commit*": allow
     "bun run test*": allow
-    "bun run format*": allow
+    "bun test*": allow
     "bun run lint*": allow
-    "bun run build": ask
+    "bun run format*": allow
+    "bun run typecheck*": allow
+    "npx tsc*": allow
+    "bunx tsc*": allow
+    "tsc *": allow
+    "node --check*": allow
+    "bun run build*": ask
     "bun run dev*": ask
+    "bun install*": ask
+    "npm install*": ask
+    "pnpm install*": ask
+    "yarn install*": ask
+    "git push*": ask
+    "git checkout*": ask
+    "git switch*": ask
+    "git reset*": ask
+    "git stash*": ask
+    "git clean*": ask
+    "git push --force*": deny
+    "git push -f*": deny
+    "git reset --hard*": deny
+    "git clean -f*": deny
+    "git clean -fd*": deny
+    "git filter-branch*": deny
+    "git tag -d*": deny
+    "git tag -f*": deny
+    "git branch -D*": deny
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "curl * | sh*": deny
+    "curl * | bash*": deny
+    "wget * | sh*": deny
+    "wget * | bash*": deny
+
 ---
 
 ## Communication Protocol

@@ -6,9 +6,78 @@ temperature: 0.3
 color: "#9333ea"
 permission:
   bash:
-    "git commit *": ask
+    "*": deny
+    "pwd*": allow
+    "ls*": allow
+    "cat*": allow
+    "head*": allow
+    "tail*": allow
+    "wc*": allow
+    "find*": allow
+    "grep*": allow
+    "rg*": allow
+    "tree*": allow
+    "file*": allow
+    "stat*": allow
+    "git status*": allow
+    "git log*": allow
+    "git diff*": allow
+    "git show*": allow
+    "git grep*": allow
+    "git branch*": allow
+    "git rev-parse*": allow
+    "git ls-files*": allow
+    "git blame*": allow
+    "git describe*": allow
+    "git remote*": allow
+    "git tag --list*": allow
+    "git tag -l*": allow
+    "git worktree list*": allow
+    "bun run typecheck*": allow
+    "bun run test*": allow
+    "bun test*": allow
+    "npm run typecheck*": allow
+    "npm test*": allow
+    "npm run test*": allow
+    "git add*": ask
+    "git commit*": ask
+    "git push*": ask
+    "git fetch*": ask
+    "git pull*": ask
+    "git merge*": ask
+    "git rebase*": ask
+    "git checkout*": ask
+    "git switch*": ask
+    "git reset*": ask
+    "git stash*": ask
+    "git clean*": ask
+    "git tag -a*": ask
+    "git tag -s*": ask
+    "git worktree add*": ask
+    "git worktree remove*": ask
+    "git worktree prune*": ask
     "gh *": ask
-    "*": allow
+    "npm install*": ask
+    "bun install*": ask
+    "git push --force*": deny
+    "git push -f*": deny
+    "git reset --hard*": deny
+    "git clean -f*": deny
+    "git clean -fd*": deny
+    "git tag -d*": deny
+    "git tag -f*": deny
+    "git worktree remove --force*": deny
+    "git remote add*": deny
+    "git remote remove*": deny
+    "git remote set*": deny
+    "git branch -d*": deny
+    "git branch -D*": deny
+    "git branch -m*": deny
+    "curl * | sh*": deny
+    "curl * | bash*": deny
+    "wget * | sh*": deny
+    "wget * | bash*": deny
+
 tools:
   worktree_create: true
   status: true
