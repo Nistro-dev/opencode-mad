@@ -2,14 +2,14 @@
 
 Parallel development orchestration plugin for [OpenCode](https://opencode.ai).
 
-Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **10 specialized agents** and **hard constraints** enforced at the code level.
+Decompose complex tasks into parallelizable subtasks, each running in isolated git worktrees with dedicated AI subagents. Now with **11 specialized agents** and **hard constraints** enforced at the code level.
 
 ## 🎉 What's New in v1.0.0
 
 ### 🤖 5 New Specialized Agents
 
-- **analyste** - Analyzes the codebase (full or targeted analysis), READ-ONLY
-- **architecte** - Creates detailed development plans with file ownership, READ-ONLY
+- **analyst** - Analyzes the codebase (full or targeted analysis), READ-ONLY
+- **architect** - Creates detailed development plans with file ownership, READ-ONLY
 - **reviewer** - Reviews code quality before merge, READ-ONLY
 - **security** - Scans for security vulnerabilities, READ-ONLY
 - **pentester** - Web penetration testing via URL, READ-ONLY
@@ -18,7 +18,7 @@ Decompose complex tasks into parallelizable subtasks, each running in isolated g
 
 The plugin now **blocks unauthorized actions** at the code level:
 
-- READ-ONLY agents cannot use `edit`, `write`, or `patch` tools
+- READ-ONLY agents cannot use `edit`, `write`, `patch`, or `multiedit` tools
 - Developers are constrained to their assigned file ownership
 - Dangerous bash commands are blocked for read-only agents
 
@@ -26,22 +26,24 @@ The plugin now **blocks unauthorized actions** at the code level:
 
 The orchestrator now **delegates** analysis and planning to specialized agents:
 
-- Uses `analyste` for codebase understanding
-- Uses `architecte` for development planning
+- Uses `analyst` for codebase understanding
+- Uses `architect` for development planning
 - Focuses on coordination and monitoring
 
 ### 🛠️ New Tools
 
-- `register_agent` - Register agent with role and permissions
-- `unregister_agent` - Unregister agent when done
+- `register_agent` - Register an agent with its type and permissions
+- `unregister_agent` - Unregister an agent when it finishes
 - `analyze` - Trigger codebase analysis
-- `create_plan` - Create development plan
-- `review` - Request code review
-- `security_scan` - Run security scan
+- `create_plan` - Store a development plan
+- `review` - Submit a code review
+- `security_scan` - Submit a security scan report
+- `pentest_check_tools` - Check which pentest tools are installed
+- `pentest_scan` - Record penetration test results
 
 ## Features
 
-- **Smart Planning** - Orchestrator delegates to Analyste and Architecte for thorough planning
+- **Smart Planning** - Orchestrator delegates to Analyst and Architect for thorough planning
 - **File Ownership** - Each agent has exclusive files, preventing merge conflicts
 - **Hard Constraints** - Plugin enforces permissions at the code level
 - **Parallel Execution** - Multiple developers work simultaneously in git worktrees
@@ -71,7 +73,7 @@ npx @fiandev/opencode-kit version
 
 ```bash
 # Clone the repo
-git clone https://github.com/Nistro-dev/opencode-kit.git
+git clone https://github.com/fiandev/opencode-kit.git
 
 # Copy to your project
 cp -r opencode-kit/agents your-project/.opencode/
@@ -92,18 +94,20 @@ cp -r opencode-kit/skills ~/.config/opencode/skills/
 your-project/
 ├── .opencode/
 │   ├── agents/
-│   │   ├── orchestrator.md      # Main coordinator
-│   │   ├── analyst.md       # Codebase analysis (READ-ONLY)
-│   │   ├── architecte.md    # Development planning (READ-ONLY)
-│   │   ├── developer.md     # Implements features
-│   │   ├── tester.md        # Tests before merge
-│   │   ├── reviewer.md      # Code review (READ-ONLY)
-│   │   ├── security.md      # Security scanning (READ-ONLY)
-│   │   ├── merger.md        # Resolves conflicts
-│   │   └── fixer.md         # Fixes integration
+│   │   ├── orchestrator.md   # Main coordinator
+│   │   ├── analyst.md        # Codebase analysis (READ-ONLY)
+│   │   ├── architect.md      # Development planning (READ-ONLY)
+│   │   ├── planner.md        # Requirements and file ownership (READ-ONLY)
+│   │   ├── developer.md      # Implements features
+│   │   ├── tester.md         # Tests before merge (READ-ONLY)
+│   │   ├── reviewer.md       # Code review (READ-ONLY)
+│   │   ├── security.md       # Security scanning (READ-ONLY)
+│   │   ├── pentester.md      # Web penetration testing (READ-ONLY)
+│   │   ├── merger.md         # Resolves conflicts
+│   │   └── fixer.md          # Fixes integration
 │   ├── commands/
 │   ├── plugins/
-│   │   └── plugin.ts
+│   │   └── main.ts
 │   └── skills/
 └── ... your code
 ```
@@ -116,14 +120,14 @@ Once installed, just talk to the orchestrator naturally:
 You: Create a Task Timer app with Express backend and React frontend
 
 Orchestrator: I'll analyze the codebase first...
-[Spawns analyste for codebase analysis]
+[Spawns analyst for codebase analysis]
 
-Analyste: Analysis complete. Here's the structure...
+Analyst: Analysis complete. Here's the structure...
 
 Orchestrator: Now creating the development plan...
-[Spawns architecte for planning]
+[Spawns architect for planning]
 
-Architecte: Here's the development plan with file ownership:
+Architect: Here's the development plan with file ownership:
 - Developer 1: /backend/** (Express API)
 - Developer 2: /frontend/** (React UI)
 - Developer 3: /shared/** (Types & utils)
@@ -174,10 +178,10 @@ Orchestrator: I'll spawn a fixer to resolve this.
             ┌───────────────┴───────────────┐
             ▼                               ▼
 ┌───────────────────────┐     ┌───────────────────────┐
-│  ANALYSTE (READ-ONLY) │     │  ARCHITECTE (READ-ONLY)│
-│  - Analyzes codebase  │────▶│  - Creates dev plan    │
-│  - Maps dependencies  │     │  - Assigns ownership   │
-│  - Identifies patterns│     │  - Defines interfaces  │
+│  ANALYST (READ-ONLY)  │     │  ARCHITECT (READ-ONLY)│
+│  - Analyzes codebase  │────▶│  - Creates dev plan   │
+│  - Maps dependencies  │     │  - Assigns ownership  │
+│  - Identifies patterns│     │  - Defines interfaces │
 └───────────────────────┘     └───────────────────────┘
                                           │
                                           ▼ "GO"
@@ -225,42 +229,51 @@ MAD v1.0.0 introduces **hard constraints** enforced at the plugin level. This me
 
 ### How It Works
 
-When an agent registers with the plugin, it declares its role:
+When an agent registers with the plugin, it declares its type and permissions:
 
 ```typescript
-// Agent registers with the plugin
+// Read-only agent
 register_agent({
-  agentId: "analyste-abc123",
-  role: "analyste",
-  permissions: {
-    canWrite: false, // READ-ONLY
-    canExecute: false, // No bash commands
-    filePatterns: ["**/*"], // Can read everything
-  },
+  sessionID: "ses_abc123",
+  agentType: "analyst",
+  allowedPaths: ["**/*"], // read everything
+});
+
+// Developer scoped to its own files
+register_agent({
+  sessionID: "ses_def456",
+  agentType: "developer",
+  worktree: "/path/to/worktrees/feat-backend",
+  allowedPaths: ["/backend/**"],
+  deniedPaths: ["/frontend/**"],
 });
 ```
 
 The plugin then **intercepts all tool calls** and blocks unauthorized actions:
 
 ```
-❌ BLOCKED: Agent 'analyste-abc123' attempted to use 'edit' tool
-   Reason: Agent role 'analyste' does not have write permissions
+🚫 analyst is read-only
+🚫 Outside allowed paths: App.tsx
+🚫 Path denied: package.json
 ```
 
 ### Permission Matrix
 
-| Agent        | Read | Write | Execute | File Scope                           |
-| ------------ | ---- | ----- | ------- | ------------------------------------ |
-| orchestrator | ✅   | ✅    | ✅      | `**/*`                               |
-| analyste     | ✅   | ❌    | ❌      | `**/*`                               |
-| architecte   | ✅   | ❌    | ❌      | `**/*`                               |
-| developer    | ✅   | ✅    | ✅      | Assigned files only                  |
-| tester       | ✅   | ✅    | ✅      | Test files + worktree                |
-| reviewer     | ✅   | ❌    | ❌      | `**/*`                               |
-| security     | ✅   | ❌    | ❌      | `**/*`                               |
-| pentester    | ✅   | ❌    | ✅      | `**/*` (bash for pentest tools only) |
-| merger       | ✅   | ✅    | ✅      | Conflict files                       |
-| fixer        | ✅   | ✅    | ✅      | Integration files                    |
+| Agent        | Read | Write | Execute                | File Scope                           |
+| ------------ | ---- | ----- | ---------------------- | ------------------------------------ |
+| orchestrator | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| analyst      | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| architect    | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| planner      | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| developer    | ✅   | ✅    | ✅                     | Assigned files only                  |
+| tester       | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| reviewer     | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| security     | ✅   | ❌    | ✅ (safe commands)     | `**/*`                               |
+| pentester    | ✅   | ❌    | ✅ (pentest tools)     | `**/*`                               |
+| merger       | ✅   | ✅    | ✅                     | Conflict files                       |
+| fixer        | ✅   | ✅    | ✅                     | Integration files                    |
+
+> "Safe commands" means bash is available, but write-like commands (`rm`, `mv`, `cp`, `mkdir`, `touch`, redirection, `npm install`, `git commit`, `git push`) are blocked for read-only agents.
 
 ### Developer File Ownership
 
@@ -282,11 +295,12 @@ This prevents merge conflicts and ensures clean parallel development.
 
 | Agent          | Mode     | Permissions       | Description                                                               |
 | -------------- | -------- | ----------------- | ------------------------------------------------------------------------- |
-| `orchestrator` | primary  | Full              | Coordinates workflow, delegates to specialists. **Never codes directly.** |
-| `analyste`     | subagent | READ-ONLY         | Analyzes codebase structure, dependencies, and patterns                   |
-| `architecte`   | subagent | READ-ONLY         | Creates development plans with file ownership                             |
+| `orchestrator` | primary  | Coordinator       | Coordinates workflow, delegates to specialists. **Never codes directly.** |
+| `analyst`      | subagent | READ-ONLY         | Analyzes codebase structure, dependencies, and patterns                   |
+| `architect`    | subagent | READ-ONLY         | Creates development plans with file ownership                             |
+| `planner`      | subagent | READ-ONLY         | Clarifies requirements and plans file ownership                           |
 | `developer`    | subagent | Scoped Write      | Implements tasks in isolated worktrees (constrained to owned files)       |
-| `tester`       | subagent | Test Write        | Tests code before merge, can fix simple issues                            |
+| `tester`       | subagent | READ-ONLY         | Tests and validates code before merge                                     |
 | `reviewer`     | subagent | READ-ONLY         | Reviews code quality, suggests improvements                               |
 | `security`     | subagent | READ-ONLY         | Scans for security vulnerabilities                                        |
 | `merger`       | subagent | Conflict Write    | Resolves git merge conflicts                                              |
@@ -317,16 +331,16 @@ The plugin provides these tools:
 
 ### New in v1.0.0
 
-| Tool                  | Description                                              |
-| --------------------- | -------------------------------------------------------- |
-| `register_agent`      | Register agent with role and permissions                 |
-| `unregister_agent`    | Unregister agent when done                               |
-| `analyze`             | Trigger codebase analysis (full or targeted)             |
-| `create_plan`         | Create development plan with file ownership              |
-| `review`              | Request code review for a worktree                       |
-| `security_scan`       | Run security vulnerability scan                          |
-| `pentest_check_tools` | Check if pentest tools are installed (nmap, nikto, etc.) |
-| `pentest_scan`        | Register pentest scan results for a target URL           |
+| Tool                  | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| `register_agent`      | Register an agent with its type and permissions                      |
+| `unregister_agent`    | Unregister an agent when it finishes                                 |
+| `analyze`             | Trigger codebase analysis (full or targeted)                         |
+| `create_plan`         | Store a development plan with file ownership                         |
+| `review`              | Submit a code review for a worktree                                  |
+| `security_scan`       | Submit a security vulnerability scan report                          |
+| `pentest_check_tools` | Check for installed pentest tools (nuclei, httpx, nmap, sqlmap, etc.) |
+| `pentest_scan`        | Record pentest scan results for a target URL                         |
 
 ## Updates
 
@@ -350,26 +364,31 @@ MAD includes a **pentester agent** for dynamic security testing of web applicati
 
 ### Prerequisites
 
-Install the required tools:
+Install the tools for the scan modes you need:
 
 ```bash
 # Debian/Ubuntu
-sudo apt install nmap nikto sqlmap
+sudo apt install nmap nikto sqlmap curl
 
 # macOS
-brew install nmap nikto sqlmap
-
-# Verify installation
-npx @fiandev/opencode-kit pentest-check
+brew install nmap nikto sqlmap curl
 ```
+
+Optional scanners used by the deep and exploit modes (`nuclei`, `httpx`, `ffuf`, `gobuster`) must be installed separately.
+
+### Checking available tools
+
+Ask the orchestrator or pentester to run `pentest_check_tools`. It reports which of these are installed:
+
+`nuclei`, `httpx`, `katana`, `subfinder`, `sqlmap`, `nmap`, `curl`, `ffuf`
 
 ### Scan Modes
 
-| Mode      | Description                             | Tools Used            |
-| --------- | --------------------------------------- | --------------------- |
-| `basic`   | Headers, SSL/TLS, known vulnerabilities | nmap, nikto           |
-| `deep`    | Crawling, fuzzing, endpoint discovery   | nikto, dirb, gobuster |
-| `exploit` | Active SQLi, XSS, CSRF testing          | sqlmap, nikto         |
+| Mode      | Description                             | Tools Used                 |
+| --------- | --------------------------------------- | -------------------------- |
+| `basic`   | Headers, SSL/TLS, known vulnerabilities | httpx, nuclei, curl        |
+| `deep`    | Crawling, fuzzing, endpoint discovery   | nuclei, ffuf, gobuster, nikto |
+| `exploit` | Active SQLi, XSS, CSRF testing          | sqlmap, nuclei             |
 
 ### Usage Examples
 
@@ -413,10 +432,10 @@ The pentester agent will:
 
 ## Requirements
 
-- [OpenCode](https://opencode.ai) 1.0+
+- [OpenCode](https://opencode.ai) 1.19.5+ (matches the `@opencode-ai/plugin` dependency)
 - Git (for worktrees)
 - Node.js 18+
-- **For pentesting**: nmap, nikto, sqlmap (optional)
+- **For pentesting**: nmap, nikto, sqlmap, curl, plus optional nuclei, httpx, ffuf, and gobuster
 
 ## Configuration
 
@@ -440,4 +459,4 @@ MIT
 
 ## Contributing
 
-Issues and PRs welcome at [github.com/Nistro-dev/opencode-kit](https://github.com/Nistro-dev/opencode-kit)
+Issues and PRs welcome at [github.com/fiandev/opencode-kit](https://github.com/fiandev/opencode-kit)

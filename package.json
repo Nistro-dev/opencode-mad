@@ -14,6 +14,10 @@
     "skills",
     "install.js"
   ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@opencode-ai/plugin": "^1.19.5"
   },

@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    outputs:
+      on-master: ${{ steps.check.outputs.on-master }}
+      version: ${{ steps.check.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check tag is on master
+        id: check
+        run: |
+          git fetch --no-tags origin master
+
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "on-master=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "on-master=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Tag $GITHUB_REF_NAME is not on master, skipping release"
+          fi
+
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish to npm
+    needs: verify
+    if: needs.verify.outputs.on-master == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Run tests
+        run: bun test
+
+      - name: Verify tag matches package version
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "${{ needs.verify.outputs.version }}" != "$PKG_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Publish
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
