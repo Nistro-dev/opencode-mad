@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Split the monolithic `plugins/main.ts` into `plugin.ts`, `hooks.ts`, `types.ts`, `constants.ts`, `lib/*`, and `tools/*` (internal refactor, no behavior change).
+- Build `install.js` from `install.ts` at `prepack`; `install.ts` is now typechecked and `install.js` is a gitignored build artifact.
+
 ## [1.2.0] - 2026-11-08
 
 ### Added
