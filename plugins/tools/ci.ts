@@ -1,7 +1,7 @@
 import { tool } from "../lib/tool"
 import { errorMessage } from "../lib/errors"
-import { PACKAGE_NAME } from "../constants"
-import type { GitHubRun, PluginContext, ToolDefinition } from "../types"
+import { PACKAGE_NAME } from "../includes/constants"
+import type { GitHubRun, PluginContext, ToolDefinition } from "../types/enitities"
 
 export const ciTools = (ctx: PluginContext): Record<string, ToolDefinition> => ({
 

@@ -3,7 +3,7 @@ import { join } from "path"
 import { tool } from "../lib/tool"
 import { readWorktreeBranch } from "../lib/util"
 import { errorMessage } from "../lib/errors"
-import type { PluginContext, ToolDefinition } from "../types"
+import type { PluginContext, ToolDefinition } from "../types/enitities"
 
 export const worktreeTools = (ctx: PluginContext): Record<string, ToolDefinition> => ({
 

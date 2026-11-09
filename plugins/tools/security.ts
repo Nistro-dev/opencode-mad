@@ -1,7 +1,7 @@
 import { existsSync, writeFileSync } from "fs"
 import { join } from "path"
 import { tool } from "../lib/tool"
-import type { PluginContext, ToolDefinition } from "../types"
+import type { PluginContext, ToolDefinition } from "../types/enitities"
 
 export const securityTools = (ctx: PluginContext): Record<string, ToolDefinition> => ({
 

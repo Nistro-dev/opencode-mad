@@ -1,4 +1,4 @@
-import type { AgentType } from "./types"
+import type { AgentType } from "../types/enitities"
 
 // Package metadata used by the update check
 export const PACKAGE_NAME = "@fiandev/opencode-kit"

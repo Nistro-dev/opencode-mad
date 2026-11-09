@@ -1,7 +1,7 @@
 import { tool } from "../lib/tool"
-import { READ_ONLY_AGENTS } from "../constants"
+import { READ_ONLY_AGENTS } from "../includes/constants"
 import { setAgentPermissions, deleteAgentPermissions, hasAgentPermissions } from "../lib/registry"
-import type { AgentPermissions, PluginContext, ToolDefinition } from "../types"
+import type { AgentPermissions, PluginContext, ToolDefinition } from "../types/enitities"
 
 export const agentsTools = (ctx: PluginContext): Record<string, ToolDefinition> => ({
 

@@ -1,13 +1,13 @@
-import { createPluginContext } from "./lib/context"
-import { createToolBeforeGuard } from "./lib/guard"
+import { createPluginContext } from "../lib/context"
+import { createToolBeforeGuard } from "../lib/guard"
 import { FALLBACK_MODEL } from "./constants"
-import { worktreeTools } from "./tools/worktree"
-import { qualityTools } from "./tools/quality"
-import { reportTools } from "./tools/report"
-import { ciTools } from "./tools/ci"
-import { agentsTools } from "./tools/agents"
-import { securityTools } from "./tools/security"
-import type { ToolDefinition } from "./types"
+import { worktreeTools } from "../tools/worktree"
+import { qualityTools } from "../tools/quality"
+import { reportTools } from "../tools/report"
+import { ciTools } from "../tools/ci"
+import { agentsTools } from "../tools/agents"
+import { securityTools } from "../tools/security"
+import type { ToolDefinition } from "../types/enitities"
 
 export const createPluginHooks = async ({ directory, log }: { directory: string; log?: (message: string) => void }) => {
   const ctx = createPluginContext({ directory, log })

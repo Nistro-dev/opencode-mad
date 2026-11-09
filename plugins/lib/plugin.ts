@@ -1,6 +1,6 @@
 import { Plugin } from "@opencode/plugin"
 import { z } from "zod"
-import { createPluginHooks } from "./hooks"
+import { createPluginHooks } from "../includes/hooks"
 
 /**
  * OpenCode V2 plugin definition.

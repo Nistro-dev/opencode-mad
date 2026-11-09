@@ -1,4 +1,4 @@
-import type { AgentPermissions } from "../types"
+import type { AgentPermissions } from "../types/enitities"
 
 // Global map to store permissions by sessionID
 const agentPermissions = new Map<string, AgentPermissions>()

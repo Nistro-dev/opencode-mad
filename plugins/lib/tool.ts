@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { ToolDefinition } from "../types"
+import type { ToolDefinition } from "../types/enitities"
 
 /** Local `tool()` helper so tool definitions stay compact and typed. */
 export const tool = Object.assign(

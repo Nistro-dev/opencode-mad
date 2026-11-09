@@ -2,7 +2,7 @@ import { readFileSync, existsSync, readdirSync, statSync, writeFileSync } from "
 import { join } from "path"
 import { tool } from "../lib/tool"
 import { errorMessage } from "../lib/errors"
-import type { PackageJson, PluginContext, ToolDefinition } from "../types"
+import type { PackageJson, PluginContext, ToolDefinition } from "../types/enitities"
 
 export const reportTools = (ctx: PluginContext): Record<string, ToolDefinition> => ({
 

@@ -1,9 +1,9 @@
 import { appendFileSync } from "fs"
 import { join } from "path"
 import { execSync } from "child_process"
-import { PACKAGE_NAME, CURRENT_VERSION } from "../constants"
+import { PACKAGE_NAME, CURRENT_VERSION } from "../includes/constants"
 import { errorOutput } from "./errors"
-import type { CommandResult, PluginContext } from "../types"
+import type { CommandResult, PluginContext } from "../types/enitities"
 
 export const createPluginContext = ({ directory, log }: { directory: string; log?: (message: string) => void }): PluginContext => {
   const normalizedLog = log ?? (() => {})

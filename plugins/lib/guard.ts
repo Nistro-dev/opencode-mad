@@ -2,7 +2,7 @@ import { basename } from "path"
 import { getAgentPermissions } from "./registry"
 import { matchGlob } from "./glob"
 import { firstString } from "./util"
-import type { PluginContext, ToolBeforeInput, ToolBeforeOutput, ToolExecuteArgs } from "../types"
+import type { PluginContext, ToolBeforeInput, ToolBeforeOutput, ToolExecuteArgs } from "../types/enitities"
 
 export const DANGEROUS_BASH_PATTERNS = [
   /\becho\s+.*>/,
