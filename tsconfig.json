@@ -11,6 +11,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "removeComments": true,
     "forceConsistentCasingInFileNames": true
   },
   "include": ["plugins/**/*.ts", "tests/**/*.ts", "install.ts"],

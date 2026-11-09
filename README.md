@@ -74,20 +74,21 @@ npx @fiandev/opencode-kit version
 ### Option 2: Manual copy
 
 ```bash
-# Clone the repo
+# Clone and build the plugin bundle
 git clone https://github.com/fiandev/opencode-kit.git
+cd opencode-kit
+bun install
+bun run build
 
 # Copy to your project
-cp -r opencode-kit/agents your-project/.opencode/
-cp -r opencode-kit/commands your-project/.opencode/
-cp -r opencode-kit/plugins your-project/.opencode/
-cp -r opencode-kit/skills your-project/.opencode/
+cp -r agents commands skills your-project/.opencode/
+mkdir -p your-project/.opencode/plugins
+cp -r dist/. your-project/.opencode/plugins/
 
 # Or copy globally
-cp -r opencode-kit/agents ~/.config/opencode/agents/
-cp -r opencode-kit/commands ~/.config/opencode/commands/
-cp -r opencode-kit/plugins ~/.config/opencode/plugins/
-cp -r opencode-kit/skills ~/.config/opencode/skills/
+cp -r agents commands skills ~/.config/opencode/
+mkdir -p ~/.config/opencode/plugins
+cp -r dist/. ~/.config/opencode/plugins/
 ```
 
 ### Project structure after installation
@@ -116,13 +117,7 @@ your-project/
 │   │   └── fixer.md          # Fixes integration
 │   ├── commands/
 │   ├── plugins/
-│   │   ├── main.ts          # package entry (thin barrel, no logic)
-│   │   ├── plugin.ts        # Plugin.define + runtime wiring
-│   │   ├── hooks.ts         # createPluginHooks (tools + hooks)
-│   │   ├── types.ts         # shared types
-│   │   ├── constants.ts     # package name, version, fallback model
-│   │   ├── lib/             # helpers, context, registry, guard
-│   │   └── tools/           # tool domains (worktree, quality, report, ci, agents, security)
+│   │   └── main.js          # bundled plugin (built from plugins/main.ts)
 │   └── skills/
 └── ... your code
 ```
