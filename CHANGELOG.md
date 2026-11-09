@@ -7,11 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-09
+
+### Added
+
+- `ponytail` skill under `skills/ponytail/SKILL.md`.
+- Parity test asserting the plugin exposes exactly 21 tools, each with a description and an object args schema.
+
 ### Changed
 
-- Split the monolithic `plugins/main.ts` into `plugin.ts`, `hooks.ts`, `types.ts`, `constants.ts`, `lib/*`, and `tools/*` (internal refactor, no behavior change).
+- **Breaking:** the package now ships the compiled bundle. `bun run build` bundles `plugins/main.ts` to `dist/main.js`, which is the package `main`; `files` lists `dist` instead of `plugins`; and `prepack` builds both the bundle and `install.js`.
+- **Breaking:** the installer copies `dist/` into `.opencode/plugins/` and removes the TypeScript plugin files installed by versions <= 1.2.0 so the plugin is not loaded twice. A source checkout or tarball without `dist/` can no longer be installed.
+- **Breaking:** manual installation now requires clone + `bun install` + `bun run build` and copying `dist/`; the documented post-install structure shows `plugins/main.js`.
+- **Breaking:** all shipped agents now require a trailing space in bash permission globs (`"pwd *"` instead of `"pwd*"`), so argument-less invocations such as `pwd`, `git status`, and `bun test` no longer match an allow rule.
+- Split the monolithic `plugins/main.ts` into `plugins/includes/{constants,hooks}.ts`, `plugins/lib/*` (including `plugins/lib/plugin.ts`), `plugins/tools/*`, and `plugins/types/enitities.ts` (internal refactor, no behavior change).
+- `plugins/main.ts` is now a barrel re-exporting `createPluginHooks`, `MultiAgentDevPlugin`, and the default export over `plugins/includes/hooks.ts` and `plugins/lib/plugin.ts`.
 - Build `install.js` from `install.ts` at `prepack`; `install.ts` is now typechecked and `install.js` is a gitignored build artifact.
-- Publish compiled JavaScript instead of TypeScript source: `bun run build` bundles `plugins/main.ts` to `dist/main.js`, which is now the package `main`, and the installer copies that bundle into `.opencode/plugins/`. Upgrading removes the TypeScript plugin files installed by versions <= 1.2.0.
+- Release workflow builds the bundle before verifying the tag.
+
+### Fixed
+
+- Bash permission allowlists no longer match unintended commands through prefix collision.
 
 ## [1.2.0] - 2026-11-08
 
@@ -54,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Worktree cleanup/done/blocked tools use direct filesystem and command execution instead of shell interpolation.
 - Read-only agents can no longer create or move tags.
 
-[Unreleased]: https://github.com/fiandev/opencode-kit/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/fiandev/opencode-kit/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/fiandev/opencode-kit/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/fiandev/opencode-kit/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/fiandev/opencode-kit/compare/v1.0.0...v1.1.0
