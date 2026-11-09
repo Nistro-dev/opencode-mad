@@ -17,62 +17,62 @@ tools:
 permission:
   bash:
     "*": deny
-    "pwd*": allow
-    "ls*": allow
-    "cat*": allow
-    "head*": allow
-    "tail*": allow
-    "wc*": allow
-    "find*": allow
-    "grep*": allow
-    "rg*": allow
-    "tree*": allow
-    "file*": allow
-    "stat*": allow
-    "git status*": allow
-    "git log*": allow
-    "git diff*": allow
-    "git show*": allow
-    "git grep*": allow
-    "git branch*": allow
-    "git rev-parse*": allow
-    "git ls-files*": allow
-    "git blame*": allow
-    "git describe*": allow
-    "git remote*": allow
-    "git add*": allow
-    "git commit*": ask
-    "git add -A*": deny
-    "git add --all*": deny
+    "pwd *": allow
+    "ls *": allow
+    "cat *": allow
+    "head *": allow
+    "tail *": allow
+    "wc *": allow
+    "find *": allow
+    "grep *": allow
+    "rg *": allow
+    "tree *": allow
+    "file *": allow
+    "stat *": allow
+    "git status *": allow
+    "git log *": allow
+    "git diff *": allow
+    "git show *": allow
+    "git grep *": allow
+    "git branch *": allow
+    "git rev-parse *": allow
+    "git ls-files *": allow
+    "git blame *": allow
+    "git describe *": allow
+    "git remote *": allow
+    "git add *": allow
+    "git commit *": ask
+    "git add -A *": deny
+    "git add --all *": deny
     "git add .": deny
-    "git commit --amend*": deny
-    "git commit --no-verify*": deny
-    "git commit -n*": deny
-    "git push*": deny
-    "git fetch*": deny
-    "git pull*": deny
-    "git merge*": deny
-    "git rebase*": deny
-    "git cherry-pick*": deny
-    "git revert*": deny
-    "git checkout*": deny
-    "git switch*": deny
-    "git reset*": deny
-    "git stash*": deny
-    "git clean*": deny
-    "git tag*": deny
-    "git worktree*": deny
-    "git config*": deny
-    "git filter-branch*": deny
-    "git submodule*": deny
-    "npm*": deny
-    "bun*": deny
-    "pnpm*": deny
-    "yarn*": deny
-    "curl * | sh*": deny
-    "curl * | bash*": deny
-    "wget * | sh*": deny
-    "wget * | bash*": deny
+    "git commit --amend *": deny
+    "git commit --no-verify *": deny
+    "git commit -n *": deny
+    "git push *": deny
+    "git fetch *": deny
+    "git pull *": deny
+    "git merge *": deny
+    "git rebase *": deny
+    "git cherry-pick *": deny
+    "git revert *": deny
+    "git checkout *": deny
+    "git switch *": deny
+    "git reset *": deny
+    "git stash *": deny
+    "git clean *": deny
+    "git tag *": deny
+    "git worktree *": deny
+    "git config *": deny
+    "git filter-branch *": deny
+    "git submodule *": deny
+    "npm *": deny
+    "bun *": deny
+    "pnpm *": deny
+    "yarn *": deny
+    "curl * | sh *": deny
+    "curl * | bash *": deny
+    "wget * | sh *": deny
+    "wget * | bash *": deny
 ---
 
 ## Communication Protocol

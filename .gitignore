@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 dist/
 *.log
+tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
@@ -28,3 +29,6 @@ worktrees/
 
 .opencode
 .agent-review
+
+*.js
+./plugin/**/*.js
