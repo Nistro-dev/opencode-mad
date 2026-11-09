@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Installer no longer fails with `ERR_FS_CP_DIR_TO_NON_DIR` when a destination folder
+  (`agents`, `commands`, `skills`, or `plugins`) is a symlink to a directory: it copies
+  into the link target and keeps the link. Plain-file destinations are rejected with a
+  clear `opencode-kit: <path> exists and is not a directory` error instead of being
+  deleted, and dangling symlinks are replaced with real directories.
+
 ## [2.0.0] - 2026-11-09
 
 ### Added
